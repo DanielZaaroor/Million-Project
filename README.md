@@ -54,3 +54,11 @@ curl -X POST http://localhost:8080/session/connect \
 curl -s -H "Token: MyUserToken123" http://localhost:8080/session/qr
 ```
 Now this will output a base64 image QR, you can eiter decode it from [This Site](https://base64.guru/converter/decode/image), or view the logs with the command from before.
+Open your whatsapp app and go to connected devices. scan the QR, and voila, we got a new session!
+
+to make our life easier, I created a script for the api calls, copy iy from the repo to the path:
+```
+mv ./send_wuzapi /usr/local/bin/send_wuzapi
+sudo chmod +x /usr/local/bin/send_wuzapi
+send_wuzapi /chat/send/text -d '{"Phone": "972585011102", "Body": "Test Easier message!"}'
+```
