@@ -7,8 +7,10 @@ I created a network and subnet before, than the VM.
 It will probably only be available with an PAYGO account, but if configured right should stay free of cost.
 ```
 sudo apt update && sudo apt upgrade -y
-sudo mkdir /million-project
+sudo mkdir /million-project /million-project/code /million-project/wuzapi-data
+cd /million-project && touch .env docker-compose.yml code/Dockerfile code/main.py
 ```
+> For later actually create this in git then do git clone instead, maybe from base branch to start with.
 ## 2. Installations
 ### docker
 ```
@@ -24,3 +26,8 @@ sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin dock
 ```
 **verify with:    docker run hello-world**
 > To run docker commands without root, run this command then logout:     sudo usermod -aG docker ${USER}
+
+```
+docker-compose up -d --build
+docker-compose logs -f wuzapi
+```
