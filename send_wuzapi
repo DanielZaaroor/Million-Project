@@ -1,0 +1,18 @@
+#!/bin/bash
+TOKEN="BiGDWG7Y8JQsoTfKAdatYZktOdYxoafPQb2l8XWHH8G2X4jcBzy7rveW8vVJF7CI"
+BASE_URL="http://localhost:8080"
+
+# The "$@" passes whatever arguments you type to curl
+ENDPOINT=$1
+shift
+
+if [[ "$ENDPOINT" != /* ]]; then
+    ENDPOINT="/$ENDPOINT"
+fi
+
+echo "Hitting: ${BASE_URL}${ENDPOINT}"
+
+curl -H "Token: $TOKEN" \
+     -H "Content-Type: application/json" \
+      "${BASE_URL}${ENDPOINT}" \
+      "$@"
