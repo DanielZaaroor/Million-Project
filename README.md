@@ -28,6 +28,7 @@ sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin dock
 ```
 **verify with:    docker run hello-world**
 > To run docker commands without root, run this command then logout:     **sudo usermod -aG docker ${USER}**
+
 Now create the containers (you should have cloned the repo already)
 ```
 docker-compose up -d --build
