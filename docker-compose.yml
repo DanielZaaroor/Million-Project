@@ -1,0 +1,37 @@
+services:
+  wuzapi:
+    image: asternic/wuzapi:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./wuzapi_data:/app/dbdata
+    environment:
+      - WUZAPI_ADMIN_TOKEN=${ADMIN_TOKEN}
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - WUZAPI_PORT=8080
+      - WUZAPI_GLOBAL_ENCRYPTION_KEY=${WUZAPI_GLOBAL_ENCRYPTION_KEY}
+      - WUZAPI_GLOBAL_HMAC_KEY=${WUZAPI_GLOBAL_HMAC_KEY}
+      - TZ=Asia/Jerusalem
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: always
+    ports:
+      - "5672:5672"   # Messaging port
+      - "15672:15672" # Dashboard (optional)
+
+  logic_engine:
+    build: ./code
+    container_name: logic_engine
+    volumes:
+      - ./code:/app/
+    restart: always
+    depends_on:
+      - rabbitmq
+      - wuzapi
+    environment:
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - WUZAPI_HOST=http://wuzapi:8080
+      - PYTHONUNBUFFERED=1
