@@ -1,0 +1,17 @@
+name: Deploy Million Project
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Deploy Services
+        run: |
+          cd /million-project
+          rsync -av --exclude='.git/' --exclude='.env' --exclude='code/data/' ${{ github.workspace }}/ /million-project/          
+          docker-compose up -d --build logic_engine
