@@ -13,5 +13,5 @@ jobs:
       - name: Deploy Services
         run: |
           cd /million-project
-          rsync -av --exclude='.git/' --exclude='.env' --exclude='code/data/' ${{ github.workspace }}/ /million-project/          
+          rsync -av --exclude='.github/' --exclude='.env' --exclude='code/data/' --exclude='send_wuzapi' ${{ github.workspace }}/ /million-project/          
           docker-compose up -d --build logic_engine
