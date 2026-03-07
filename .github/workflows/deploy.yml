@@ -14,5 +14,4 @@ jobs:
         run: |
           cd /million-project
           rsync -av --exclude='.github/' --exclude='.env' --exclude='code/data/' --exclude='send_wuzapi' ${{ github.workspace }}/ /million-project/          
-          docker compose build logic_engine
-          docker compose up -d --force-recreate logic_engine
+          docker compose up -d --build --force-recreate logic_engine
