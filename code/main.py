@@ -89,13 +89,8 @@ def callback(ch, method, properties, body):
         if msg_chat != TARGET_GROUP_JID:
             return
         
-        sender = info.get("Sender")
-        PushName = info.get("PushName")
 
-        # RULE: No double messages from same sender
-        if sender == last_sender:
-            send_alert(f"Double Count! {PushName} sent 2 messages in a row.")
-            return
+
 
         # 3. Extract Text
         message_content = event.get("Message", {})
@@ -113,7 +108,10 @@ def callback(ch, method, properties, body):
 
         # 4. Find ALL numbers in the message
         found_numbers = re.findall(r'\d+', text)
-        
+
+        sender = info.get("Sender")
+        PushName = info.get("PushName")
+
         # RULE: Message must have a number
         if not found_numbers:
             send_alert(f"{PushName} sent a message with NO numbers!")
@@ -130,6 +128,11 @@ def callback(ch, method, properties, body):
             return
 
         last_number, last_sender = currData
+
+        # RULE: No double messages from same sender
+        if sender == last_sender:
+            send_alert(f"Double Count! {PushName} sent 2 messages in a row.")
+            return
 
         # Check if ANY of the found numbers is the correct next number (n+1)
         valid_number_found = None
