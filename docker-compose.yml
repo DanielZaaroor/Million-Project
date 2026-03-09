@@ -35,3 +35,5 @@ services:
       - ADMIN_TOKEN=${ADMIN_TOKEN}
       - WUZAPI_HOST=http://wuzapi:8080
       - PYTHONUNBUFFERED=1
+      - TARGET_GROUP_JID=${TARGET_GROUP_JID}
+      - ALERT_GROUP_JID=${ALERT_GROUP_JID}
