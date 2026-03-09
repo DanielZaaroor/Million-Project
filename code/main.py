@@ -51,15 +51,15 @@ def update_state(group_jid, number, sender):
 def send_alert(message, mentions=None):
     """Sends a warning message to the group via WuzAPI."""
     print(f" [!] SENDING ALERT: {message}")
-    # url = f"{WUZAPI_HOST}/chat/send/text"
-    # headers = { "Token": ADMIN_TOKEN, "Content-Type": "application/json",}
-    # payload = { "Phone": ALERT_GROUP_JID, "Body": f"⚠️Counting Compromised: {message}" }
-    # if mentions:
-    #     payload["Mentions"] = mentions
-    # try:
-    #     requests.post(url, json=payload, headers=headers)
-    # except Exception as e:
-    #     print(f" [!!] Failed to send alert: {e}")
+    url = f"{WUZAPI_HOST}/chat/send/text"
+    headers = { "Token": ADMIN_TOKEN, "Content-Type": "application/json",}
+    payload = { "Phone": ALERT_GROUP_JID, "Body": f"⚠️Counting Compromised: {message}" }
+    if mentions:
+        payload["Mentions"] = mentions
+    try:
+        requests.post(url, json=payload, headers=headers)
+    except Exception as e:
+        print(f" [!!] Failed to send alert: {e}")
 
 
 # --- Core Logic ---
@@ -88,6 +88,14 @@ def callback(ch, method, properties, body):
         msg_chat = info.get("Chat") 
         if msg_chat != TARGET_GROUP_JID:
             return
+        
+        sender = info.get("Sender")
+        PushName = info.get("PushName")
+
+        # RULE: No double messages from same sender
+        if sender == last_sender:
+            send_alert(f"Double Count! {PushName} sent 2 messages in a row.")
+            return
 
         # 3. Extract Text
         message_content = event.get("Message", {})
@@ -102,14 +110,6 @@ def callback(ch, method, properties, body):
             text = message_content["pollCreationMessageV3"].get("name", "")
         else :
             return
-        
-        sender = info.get("Sender")
-        PushName = info.get("PushName")
-
-        # # RULE: No double messages from same sender
-        # if sender == last_sender:
-        #     send_alert(f"Double Count! {PushName} sent 2 messages in a row.")
-        #     return
 
         # 4. Find ALL numbers in the message
         found_numbers = re.findall(r'\d+', text)
@@ -144,11 +144,11 @@ def callback(ch, method, properties, body):
         if valid_number_found:
             # SUCCESS
             update_state(TARGET_GROUP_JID, valid_number_found, sender)
-            print(f" [✓] Valid count: {valid_number_found} by {sender}")
+            print(f" [✓] Valid count: {valid_number_found} by {PushName}")
         else:
             # found numbers, but none of them were the correct next number
             found_str = ", ".join(found_numbers)
-            send_alert(f"Wrong Number! @{sender.split('@')[0]} wrote [{found_str}], expected {last_number + 1}.", [sender])
+            send_alert(f"Wrong Number! {PushName} wrote [{found_str}], expected {last_number + 1}.")
 
     except Exception as e:
         print(f" [!] Error processing message: {e}")
