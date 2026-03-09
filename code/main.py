@@ -7,14 +7,13 @@ import requests
 import time
 
 # --- Configuration ---
-# We read these from the docker-compose environment variables
+# from the docker-compose environment variables
 RABBIT_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
 QUEUE_NAME = "whatsapp_events"
 LOG_FILE = "message_log.json"
-# Docker internal networking: we talk to the 'wuzapi' container directly
-WUZAPI_HOST = "http://wuzapi:8080" 
+WUZAPI_HOST = os.getenv("WUZAPI_HOST")
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
-TARGET_GROUP_JID = os.getenv("TARGET_GROUP_JID")
+TARGET_GROUP_JID = "972585011102-1496246022@g.us" #os.getenv("TARGET_GROUP_JID")
 ALERT_GROUP_JID = os.getenv("ALERT_GROUP_JID")
 
 # --- Database Setup (Persistence) ---
@@ -78,11 +77,10 @@ def callback(ch, method, properties, body):
         if data.get("type") != "Message":
             return
 
-        event = data.get("event", {})   
-        info = data.get("Info", {})
-
         # 2. Filter: Target Group Only
-        msg_chat = info.get("Chat")
+        event = data.get("event", {})   
+        info = event.get("Info", {})
+        msg_chat = info.get("Chat") 
         if msg_chat != TARGET_GROUP_JID:
             return
 
@@ -95,12 +93,15 @@ def callback(ch, method, properties, body):
             text = message_content["extendedTextMessage"].get("text", "")
         elif "imageMessage" in message_content:
             text = message_content["imageMessage"].get("caption", "")
+        else :
+            return
         
         sender = info.get("Sender")
 
         # 4. Find ALL numbers in the message
-        # re.findall returns a list of all strings that match digits
         found_numbers = re.findall(r'\d+', text)
+
+        print(f"{TARGET_GROUP_JID} ;; sender - {sender} ;; numbers - {found_numbers} ;;")
         
         # RULE: No number in message
         if not found_numbers:
