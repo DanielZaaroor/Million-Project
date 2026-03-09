@@ -13,7 +13,7 @@ QUEUE_NAME = "whatsapp_events"
 LOG_FILE = "message_log.json"
 WUZAPI_HOST = os.getenv("WUZAPI_HOST")
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
-TARGET_GROUP_JID = "972585011102-1496246022@g.us" #os.getenv("TARGET_GROUP_JID")
+TARGET_GROUP_JID = os.getenv("TARGET_GROUP_JID") #"972585011102-1496246022@g.us"
 ALERT_GROUP_JID = os.getenv("ALERT_GROUP_JID")
 
 # --- Database Setup (Persistence) ---
@@ -76,6 +76,11 @@ def callback(ch, method, properties, body):
         # 1. Filter: Only Message events
         if data.get("type") != "Message":
             return
+        
+        # Filter: no Stickers
+        if data.get("isSticker"):
+            send_alert(f"Stickers Shall Not Pass!!!")
+            return 
 
         # 2. Filter: Target Group Only
         event = data.get("event", {})   
@@ -93,6 +98,8 @@ def callback(ch, method, properties, body):
             text = message_content["extendedTextMessage"].get("text", "")
         elif "imageMessage" in message_content:
             text = message_content["imageMessage"].get("caption", "")
+        elif "pollCreationMessageV3" in message_content:
+            text = message_content["pollCreationMessageV3"].get("name", "")
         else :
             return
         
@@ -109,7 +116,7 @@ def callback(ch, method, properties, body):
         
         # RULE: Message must have a number
         if not found_numbers:
-            send_alert(f"@{PushName} sent a message with NO numbers!")
+            send_alert(f"{PushName} sent a message with NO numbers!")
             return        
 
         # 5. Logic: Find the valid Number
