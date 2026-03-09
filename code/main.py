@@ -97,15 +97,19 @@ def callback(ch, method, properties, body):
             return
         
         sender = info.get("Sender")
+        PushName = info.get("PushName")
+
+        # # RULE: No double messages from same sender
+        # if sender == last_sender:
+        #     send_alert(f"Double Count! {PushName} sent 2 messages in a row.")
+        #     return
 
         # 4. Find ALL numbers in the message
         found_numbers = re.findall(r'\d+', text)
-
-        print(f"{TARGET_GROUP_JID} ;; sender - {sender} ;; numbers - {found_numbers} ;;")
         
-        # RULE: No number in message
+        # RULE: Message must have a number
         if not found_numbers:
-            send_alert(f"@{sender.split('@')[0]} sent a message with NO numbers!", [sender])
+            send_alert(f"@{PushName} sent a message with NO numbers!")
             return        
 
         # 5. Logic: Find the valid Number
@@ -113,19 +117,12 @@ def callback(ch, method, properties, body):
 
         if not currData:
             # First run: Use the first number we find as the seed
-            if found_numbers:
-                seed_num = int(found_numbers[0])
-                update_state(TARGET_GROUP_JID, seed_num, sender)
-                print(f" [!] Initialized DB with start number: {seed_num}")
-                return
+            seed_num = int(found_numbers[0])
+            update_state(TARGET_GROUP_JID, seed_num, sender)
+            print(f" [!] Initialized DB with start number: {seed_num}")
             return
 
         last_number, last_sender = currData
-        
-        # RULE: No double messages from same sender
-        if sender == last_sender:
-            send_alert(f"Double Count! @{sender.split('@')[0]} sent 2 messages in a row.", [sender])
-            return
 
         # Check if ANY of the found numbers is the correct next number (n+1)
         valid_number_found = None
@@ -142,8 +139,7 @@ def callback(ch, method, properties, body):
             update_state(TARGET_GROUP_JID, valid_number_found, sender)
             print(f" [✓] Valid count: {valid_number_found} by {sender}")
         else:
-            # We found numbers, but none of them were the correct next number
-            # Alert with what we found vs what we expected
+            # found numbers, but none of them were the correct next number
             found_str = ", ".join(found_numbers)
             send_alert(f"Wrong Number! @{sender.split('@')[0]} wrote [{found_str}], expected {last_number + 1}.", [sender])
 
