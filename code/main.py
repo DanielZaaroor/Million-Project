@@ -51,15 +51,15 @@ def update_state(group_jid, number, sender):
 def send_alert(message, mentions=None):
     """Sends a warning message to the group via WuzAPI."""
     print(f" [!] SENDING ALERT: {message}")
-    url = f"{WUZAPI_HOST}/chat/send/text"
-    headers = { "Token": ADMIN_TOKEN, "Content-Type": "application/json",}
-    payload = { "Phone": ALERT_GROUP_JID, "Body": f"⚠️Counting Compromised: {message}" }
-    if mentions:
-        payload["Mentions"] = mentions
-    try:
-        requests.post(url, json=payload, headers=headers)
-    except Exception as e:
-        print(f" [!!] Failed to send alert: {e}")
+    #url = f"{WUZAPI_HOST}/chat/send/text"
+    #headers = { "Token": ADMIN_TOKEN, "Content-Type": "application/json",}
+    #payload = { "Phone": ALERT_GROUP_JID, "Body": f"⚠️Counting Compromised: {message}" }
+    #if mentions:
+    #    payload["Mentions"] = mentions
+    #try:
+    #    requests.post(url, json=payload, headers=headers)
+    #except Exception as e:
+    #    print(f" [!!] Failed to send alert: {e}")
 
 
 # --- Core Logic ---
