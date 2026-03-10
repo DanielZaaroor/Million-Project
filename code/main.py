@@ -76,11 +76,6 @@ def callback(ch, method, properties, body):
         # 1. Filter: Only Message events
         if data.get("type") != "Message":
             return
-        
-        # Filter: no Stickers
-        if data.get("isSticker"):
-            send_alert(f"Stickers Shall Not Pass!!!")
-            return 
 
         # 2. Filter: Target Group Only
         event = data.get("event", {})   
@@ -89,7 +84,10 @@ def callback(ch, method, properties, body):
         if msg_chat != TARGET_GROUP_JID:
             return
         
-
+        # Filter: no Stickers
+        if data.get("isSticker"):
+            send_alert(f"Stickers Shall Not Pass!!!")
+            return
 
 
         # 3. Extract Text
