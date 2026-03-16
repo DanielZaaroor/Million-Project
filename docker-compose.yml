@@ -20,6 +20,8 @@ services:
     ports:
       - "5672:5672"   # Messaging port
       - "15672:15672" # Dashboard (optional)
+    volumes:
+      - ./rabbitmq_data:/var/lib/rabbitmq
 
   logic_engine:
     build: ./code
