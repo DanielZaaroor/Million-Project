@@ -51,15 +51,15 @@ def update_state(group_jid, number, sender):
 def send_alert(message, mentions=None):
     """Sends a warning message to the group via WuzAPI."""
     print(f" [!] SENDING ALERT: {message}")
-    #url = f"{WUZAPI_HOST}/chat/send/text"
-    #headers = { "Token": ADMIN_TOKEN, "Content-Type": "application/json",}
-    #payload = { "Phone": ALERT_GROUP_JID, "Body": f"⚠️Counting Compromised: {message}" }
-    #if mentions:
-    #    payload["Mentions"] = mentions
-    #try:
-    #    requests.post(url, json=payload, headers=headers)
-    #except Exception as e:
-    #    print(f" [!!] Failed to send alert: {e}")
+    url = f"{WUZAPI_HOST}/chat/send/text"
+    headers = { "Token": ADMIN_TOKEN, "Content-Type": "application/json",}
+    payload = { "Phone": ALERT_GROUP_JID, "Body": f"⚠️Counting Compromised: {message}" }
+    if mentions:
+        payload["Mentions"] = mentions
+    try:
+        requests.post(url, json=payload, headers=headers)
+    except Exception as e:
+        print(f" [!!] Failed to send alert: {e}")
 
 
 # --- Core Logic ---
@@ -75,6 +75,7 @@ def callback(ch, method, properties, body):
         
         # 1. Filter: Only Message events
         if data.get("type") != "Message":
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
         # 2. Filter: Target Group Only
@@ -82,11 +83,13 @@ def callback(ch, method, properties, body):
         info = event.get("Info", {})
         msg_chat = info.get("Chat") 
         if msg_chat != TARGET_GROUP_JID:
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
         
         # Filter: no Stickers
         if data.get("isSticker"):
             send_alert(f"Stickers Shall Not Pass!!!")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
 
@@ -102,6 +105,7 @@ def callback(ch, method, properties, body):
         elif "pollCreationMessageV3" in message_content:
             text = message_content["pollCreationMessageV3"].get("name", "")
         else :
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
         # 4. Find ALL numbers in the message
@@ -113,6 +117,7 @@ def callback(ch, method, properties, body):
         # RULE: Message must have a number
         if not found_numbers:
             send_alert(f"{PushName} sent a message with NO numbers!")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return        
 
         # 5. Logic: Find the valid Number
@@ -123,6 +128,7 @@ def callback(ch, method, properties, body):
             seed_num = int(found_numbers[0])
             update_state(TARGET_GROUP_JID, seed_num, sender)
             print(f" [!] Initialized DB with start number: {seed_num}")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
         last_number, last_sender = currData
@@ -130,6 +136,7 @@ def callback(ch, method, properties, body):
         # RULE: No double messages from same sender
         if sender == last_sender:
             send_alert(f"Double Count! {PushName} sent 2 messages in a row.")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
         # Check if ANY of the found numbers is the correct next number (n+1)
@@ -150,6 +157,8 @@ def callback(ch, method, properties, body):
             # found numbers, but none of them were the correct next number
             found_str = ", ".join(found_numbers)
             send_alert(f"Wrong Number! {PushName} wrote [{found_str}], expected {last_number + 1}.")
+
+        ch.basic_ack(delivery_tag=method.delivery_tag) #last acknowledge
 
     except Exception as e:
         print(f" [!] Error processing message: {e}")
@@ -172,7 +181,7 @@ def main():
             channel.queue_bind(exchange='wuzapi', queue=QUEUE_NAME)
             
             print(" [*] Connected! Waiting for messages...")
-            channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback, auto_ack=True)
+            channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback, auto_ack=False)
             channel.start_consuming()
             
         except pika.exceptions.AMQPConnectionError:
