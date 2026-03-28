@@ -111,9 +111,10 @@ def extractText(message_content):
         text = message_content["imageMessage"].get("caption", "")
     elif "pollCreationMessageV3" in message_content:
         text = message_content["pollCreationMessageV3"].get("name", "")
-    elif "editedMessage" in message_content["protocolMessage"]:
-        is_edited = True
-        text = message_content["protocolMessage"]["editedMessage"].get("conversation", "")
+    elif "protocolMessage" in message_content:
+        if "editedMessage" in message_content["protocolMessage"]:
+            is_edited = True
+            text = message_content["protocolMessage"]["editedMessage"].get("conversation", "")
     else :
         text = None
     return text, is_edited      
