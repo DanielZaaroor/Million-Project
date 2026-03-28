@@ -54,7 +54,8 @@ def init_database():
 
     cursor.execute("SELECT group_jid, is_suspended FROM state WHERE group_jid = ?", [TARGET_GROUP_JID])
     row = cursor.fetchone()
-    IS_SUSPENDED = bool(row[0])
+    if row is not None:
+        IS_SUSPENDED = bool(row[0])
     log(" [*] Database is ready and memory state loaded")
 
 # --- Helper Functions ---
