@@ -199,6 +199,10 @@ def checkPendingMessage():
 
 def callback(ch, method, properties, body):
     try:
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+        return ## delete after fix
+
+
         raw_event = json.loads(body)
 
         if "jsonData" in raw_event:
