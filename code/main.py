@@ -6,6 +6,8 @@ import pika
 import requests
 import time
 import threading
+from datetime import datetime
+
 
 # --- Configuration ---
 # from the docker-compose environment variables
@@ -24,6 +26,10 @@ conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 cursor = conn.cursor()
 
 IS_SUSPENDED = False
+
+def log(msg):
+    timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+    print(f"{timestamp} {msg}")
 
 def init_database():
     """Create the table if it's the first time running"""
@@ -49,7 +55,7 @@ def init_database():
     cursor.execute("SELECT group_jid, is_suspended FROM state WHERE group_jid = ?", (TARGET_GROUP_JID))
     row = cursor.fetchone()
     IS_SUSPENDED = bool(row[0])
-    print(" [*] Database is ready and memory state loaded")
+    log(" [*] Database is ready and memory state loaded")
 
 # --- Helper Functions ---
 
@@ -83,14 +89,14 @@ def send_alert(message, delay=0):
     if (delay == -1 and IS_SUSPENDED == False): 
         return   #called back after 5 minutes and group not suspended anymore
 
-    print(f" [!] SENDING ALERT: {message}")
+    log(f" [!] SENDING ALERT: {message}")
     url = f"{WUZAPI_HOST}/chat/send/text"
     headers = { "Token": ADMIN_TOKEN, "Content-Type": "application/json",}
     payload = { "Phone": ALERT_GROUP_JID, "Body": f"⚠️Counting Compromised: {message}" }
     try:
         requests.post(url, json=payload, headers=headers)
     except Exception as e:
-        print(f" [!!] Failed to send alert: {e}")
+        log(f" [!!] Failed to send alert: {e}")
 
 def extractText(message_content):
     """Extracts the text from any type of message."""
@@ -137,7 +143,7 @@ def Verdict(valid_number_found, info, currData):
     if(valid_number_found > 0):
         # SUCCESS
         update_state(valid_number_found, sender)
-        print(f" [✓] Valid count: {valid_number_found} by {PushName}")
+        log(f" [✓] Valid count: {valid_number_found} by {PushName}")
         return True
     
     # No numbers
@@ -152,7 +158,7 @@ def Verdict(valid_number_found, info, currData):
 
 def checkPendingMessage():
     """After Mistake Window - checks all buffered messages."""
-    print(" [*] Processing buffered messages...")
+    log(" [*] Processing buffered messages...")
     cursor.execute("SELECT id, raw_json FROM pending_messages ORDER BY id ASC")
     rows = cursor.fetchall()
     
@@ -180,14 +186,14 @@ def checkPendingMessage():
             success = Verdict(valid_number_found, info, currData)
             
             if not success:
-                print(" [*] Buffered message failed validation. Re-suspending.")
+                log(" [*] Buffered message failed validation. Re-suspending.")
                 break
 
             cursor.execute("DELETE FROM pending_messages WHERE id = ?", (msg_id,))
             conn.commit()
                 
         except Exception as e:
-            print(f" [!] Error processing buffered message ID {msg_id}: {e}")
+            log(f" [!] Error processing buffered message ID {msg_id}: {e}")
 
 def callback(ch, method, properties, body):
     try:
@@ -234,7 +240,7 @@ def callback(ch, method, properties, body):
             # First run: Use the first number we find as the seed
             seed_num = int(found_numbers[0])
             update_state(seed_num, sender)
-            print(f" [!] Initialized DB with start number: {seed_num}")
+            log(f" [!] Initialized DB with start number: {seed_num}")
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
@@ -254,7 +260,7 @@ def callback(ch, method, properties, body):
             else:
                 cursor.execute("INSERT INTO pending_messages (raw_json) VALUES (?)", (body.decode('utf-8'),))
                 conn.commit()
-                print(f" [*] Mistake Winddow. Message buffered - {text}.")
+                log(f" [*] Mistake Winddow. Message buffered - {text}.")
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
         
@@ -264,12 +270,12 @@ def callback(ch, method, properties, body):
         ch.basic_ack(delivery_tag=method.delivery_tag) #last acknowledge
 
     except Exception as e:
-        print(f" [!] Error processing message: {e}")
+        log(f" [!] Error processing message: {e}")
 
 # --- Startup Boilerplate ---
 def main():
     init_database()
-    print(f" [*] Logic Engine Starting... Connecting to {RABBIT_URL}")
+    log(f" [*] Logic Engine Starting... Connecting to {RABBIT_URL}")
     while True:
         try:
             params = pika.URLParameters(RABBIT_URL)
@@ -283,15 +289,15 @@ def main():
             channel.exchange_declare(exchange='wuzapi', exchange_type='fanout', durable=True)
             channel.queue_bind(exchange='wuzapi', queue=QUEUE_NAME)
             
-            print(" [*] Connected! Waiting for messages...")
+            log(" [*] Connected! Waiting for messages...")
             channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback, auto_ack=False)
             channel.start_consuming()
             
         except pika.exceptions.AMQPConnectionError:
-            print(" [!] RabbitMQ not ready yet, retrying in 5s...")
+            log(" [!] RabbitMQ not ready yet, retrying in 5s...")
             time.sleep(5)
         except Exception as e:
-            print(f" [!] Critical Error: {e}")
+            log(f" [!] Critical Error: {e}")
             time.sleep(5)
 
 if __name__ == '__main__':
