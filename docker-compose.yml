@@ -25,17 +25,12 @@ services:
 
   logic_engine:
     build: ./code
-    container_name: logic_engine
+    container_name: logic_engine  
     volumes:
       - ./code:/app/
     restart: always
     depends_on:
       - rabbitmq
       - wuzapi
-    environment:
-      - RABBITMQ_URL=${RABBITMQ_URL}
-      - ADMIN_TOKEN=${ADMIN_TOKEN}
-      - WUZAPI_HOST=http://wuzapi:8080
-      - PYTHONUNBUFFERED=1
-      - TARGET_GROUP_JID=${TARGET_GROUP_JID}
-      - ALERT_GROUP_JID=${ALERT_GROUP_JID}
+    env_file:
+      - .env
