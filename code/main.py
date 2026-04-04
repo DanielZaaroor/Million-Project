@@ -33,8 +33,8 @@ def callback(ch, method, properties, body):
             res = handleNewCount(data)
         elif msg_chat == ADMIN_GROUP_JID:
             res = adminActions(data)
-
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        
+        ch.basic_ack(delivery_tag=method.delivery_tag) #ack the message anyway
         return 
 
     except Exception as e:
