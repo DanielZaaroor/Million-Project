@@ -6,11 +6,8 @@ from utils import log
 from counting_check import handleNewCount
 from admin_check import adminActions
 
-
 # --- Configuration ---
 QUEUE_NAME = "whatsapp_events"
-
-
 
 def callback(ch, method, properties, body):
     """Handles all non-ack events in the queue from wuzapi"""
@@ -30,7 +27,6 @@ def callback(ch, method, properties, body):
         event = data.get("event", {})   
         info = event.get("Info", {})
         msg_chat = info.get("Chat")
-
 
         res = False
         if msg_chat == MILLION_GROUP_JID:
