@@ -19,7 +19,7 @@ jobs:
       - name: Deploy Services
         run: |
           cd /million-project
-          git pull
+          rsync -av --exclude='.github/' --exclude='.env' --exclude='code/data/' --exclude='send_wuzapi' ${{ github.workspace }}/ /million-project/   
           docker compose up -d --build --force-recreate logic_engine
 
       - name: Verify deployment
