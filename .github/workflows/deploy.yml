@@ -2,7 +2,8 @@ name: Deploy Million Project
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+    paths:
+      - 'code/**'
 
 jobs:
   deploy:
