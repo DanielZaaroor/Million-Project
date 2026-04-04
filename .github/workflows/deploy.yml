@@ -2,16 +2,28 @@ name: Deploy Million Project
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: self-hosted
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
+
+      - name: Lint Python
+        run: |
+          pip install pyflakes --quiet
+          pyflakes ${{ github.workspace }}/code/
 
       - name: Deploy Services
         run: |
           cd /million-project
-          rsync -av --exclude='.github/' --exclude='.env' --exclude='code/data/' --exclude='send_wuzapi' ${{ github.workspace }}/ /million-project/   
+          git pull
           docker compose up -d --build --force-recreate logic_engine
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          docker inspect --format='{{.State.Status}}' logic_engine | grep -q "^running$" || \
+          (echo "Container failed to start!" && docker logs logic_engine --tail 20 && exit 1)
