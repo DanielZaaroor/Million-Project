@@ -1,5 +1,5 @@
 from wuzapi_client import send_alert
-from configs import cursor, conn, MILLION_GROUP_JID
+from configs import cursor, conn
 import configs
 from utils import log, extractText
 import json
@@ -116,7 +116,7 @@ def handleNewCount(data):
 
     # Filter: no Stickers
     if data.get("isSticker"):
-        send_alert(f"Stickers Shall Not Pass!!!")
+        send_alert("Stickers Shall Not Pass!!!")
         return False
     
     event = data.get("event", {})   
@@ -126,6 +126,7 @@ def handleNewCount(data):
     message_content = event.get("Message", {})
     text, is_edited = extractText(message_content)
     if text == None:
+        send_alert("Message from unknown type was sent")
         return False
 
     found_numbers = re.findall(r'\d+', text)

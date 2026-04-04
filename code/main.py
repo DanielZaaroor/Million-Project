@@ -28,11 +28,18 @@ def callback(ch, method, properties, body):
         info = event.get("Info", {})
         msg_chat = info.get("Chat")
 
-        res = False
+        res = True
         if msg_chat == MILLION_GROUP_JID:
             res = handleNewCount(data)
         elif msg_chat == ADMIN_GROUP_JID:
             res = adminActions(data)
+        
+        if res == False:
+            log(f"[!] Message on group {msg_chat} failed to proccess")
+
+        
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+        return
         
         ch.basic_ack(delivery_tag=method.delivery_tag) #ack the message anyway
         return 
