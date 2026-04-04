@@ -6,7 +6,7 @@ from utils import log
 from counting_check import handleNewCount
 from admin_check import adminActions
 
-# --- Configuration ---
+# --- Configuration --- #
 QUEUE_NAME = "whatsapp_events"
 
 def callback(ch, method, properties, body):
