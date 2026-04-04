@@ -14,7 +14,6 @@ jobs:
 
       - name: Lint Python
         run: |
-          pip install pyflakes --quiet
           pyflakes ${{ github.workspace }}/code/
 
       - name: Deploy Services
