@@ -24,7 +24,7 @@ def numOverride(text):
     try:
       num = int(text[7:])
       save_valid_count(num, "admin","admin")
-      set_suspended(False)
+      set_suspended(False,True) #also deelte buffer
       log(f"[✓] Admin Override with number - {num}")
       return True
        

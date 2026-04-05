@@ -16,7 +16,7 @@ def send_alert(message, delay=0):
     log(f" [!] SENDING ALERT: {message}")
     url = f"{configs.WUZAPI_HOST}/chat/send/text"
     headers = { "Token": configs.ADMIN_TOKEN, "Content-Type": "application/json",}
-    payload = { "Phone": configs.ALERT_GROUP_JID, "Body": f"⚠️Counting Compromised: {message}" }
+    payload = { "Phone": configs.ALERT_GROUP_JID, "Body": f"⚠️ {message}" }
     try:
         requests.post(url, json=payload, headers=headers)
     except Exception as e:

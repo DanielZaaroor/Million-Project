@@ -23,7 +23,7 @@ def save_valid_count(number, sender, push_name):
     conn.commit()
 
 
-def set_suspended(is_suspended: bool):
+def set_suspended(is_suspended: bool, delete: bool):
     """Updates the single row in the state table."""
     if is_suspended:
         configs.IS_SUSPENDED = True
@@ -31,8 +31,11 @@ def set_suspended(is_suspended: bool):
     else:
         configs.IS_SUSPENDED = False
         val = 0
-
     cursor.execute("UPDATE bot_state SET is_suspended = ? WHERE id = 1", (val,))
+    
+    if delete:
+        cursor.execute("DELETE FROM pending_messages") # buffer is not needed anymore
+
     conn.commit()
     
 
@@ -72,7 +75,7 @@ def Verdict(valid_number_found, info, currData):
     if valid_number_found == -2:
         send_alert(f"Wrong Number by {PushName}! Expected {last_number+1}.", 300)           
 
-    set_suspended(True)
+    set_suspended(True,False)
     return False
 
 def checkPendingMessage():
@@ -125,8 +128,7 @@ def handleNewCount(data):
     # 1. Extract Text and find numbers in it
     message_content = event.get("Message", {})
     text, is_edited = extractText(message_content)
-    if text == None:
-        send_alert("Message from unknown type was sent")
+    if text == None: #probably reaction emoji or some shit
         return False
 
     found_numbers = re.findall(r'\d+', text)
@@ -155,16 +157,16 @@ def handleNewCount(data):
     if configs.IS_SUSPENDED:
         if valid_number_found > 0:
             save_valid_count(valid_number_found, sender, PushName)
-            set_suspended(False)
+            
             if is_edited: #check all in buffer
+                set_suspended(False, False)
                 checkPendingMessage()
             else:
-                cursor.execute("DELETE FROM pending_messages") # buffer is not needed anymore
-                conn.commit()
+                set_suspended(False,True) #also delete buffer
         else:
             cursor.execute("INSERT INTO pending_messages (data) VALUES (?)", (json.dumps(data),))
             conn.commit()
-            log(f" [*] Mistake Winddow. Message buffered - {text}.")
+            log(f" [*] Mistake Winddow. Message by {PushName} buffered.")
         return
     
     

@@ -14,6 +14,8 @@ def extractText(message_content):
         text = message_content["extendedTextMessage"].get("text", "")
     elif "imageMessage" in message_content:
         text = message_content["imageMessage"].get("caption", "")
+    elif "videoMessage" in message_content:
+        text = message_content["videoMessage"].get("caption", "")
     elif "pollCreationMessageV3" in message_content:
         text = message_content["pollCreationMessageV3"].get("name", "")
     elif "protocolMessage" in message_content:
