@@ -2,16 +2,18 @@
 Improving the counting flow of the group by checking for errors and missing numnbers.
 
 ## 1. Prequisites
-Working environment for the services, I used an always-free Oracle Ampre Ubuntu VM.
-I created a network and subnet before, than the VM.
-It will probably only be available with an PAYGO account, but if configured right should stay free of cost.
+As the working environment for the services, I used an always-free Oracle Ampre Ubuntu VM.
+I created a network and subnet before, then the VM.
+It will probably only be available with PAYGO account, but if configured right should stay free of cost.
 
-With the new VM you can go to root and clone the repo , or create the files manually.
+With the new VM you can go to root and clone the repo:
 ```
-sudo mkdir /million-project /million-project/code /million-project/wuzapi-data
-cd /million-project && touch .env docker-compose.yml code/Dockerfile code/main.py
+sudo mkdir /million-project /million-project/wuzapi-data /million-project/rabbitmq_data
+cd /million-project && 
+git clone https://github.com/DanielZaaroor/Million-Project.git
+touch .env
 ```
-> For later actually create this in git then do git clone instead, maybe from base branch to start with.
+> env is not here obviously, figure it out.
 ## 2. Installations
 ### docker
 ```
@@ -29,12 +31,17 @@ sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin dock
 **verify with:    docker run hello-world**
 > To run docker commands without root, run this command then logout:     **sudo usermod -aG docker ${USER}**
 
-Now create the containers (you should have cloned the repo already)
+Important Docker compose CLI commands: (you should have cloned the repo already)
 ```
 docker-compose up -d --build
-docker-compose logs -f wuzapi | less 
+docker-compose logs --no-color -f wuzapi | less 
+docker-compose down && docker-compose up -d
+docker compose up -d --build --force-recreate logic_engine
 ```
-last one is to view the logs.
+For first build
+To view logs of one service
+Restart services
+Restart specific service
 
 ### WuzAPI:
 First, create a user:
@@ -56,9 +63,18 @@ curl -s -H "Token: MyUserToken123" http://localhost:8080/session/qr
 Now this will output a base64 image QR, you can eiter decode it from [This Site](https://base64.guru/converter/decode/image), or view the logs with the command from before.
 Open your whatsapp app and go to connected devices. scan the QR, and voila, we got a new session!
 
-to make our life easier, I created a script for the api calls, copy iy from the repo to the path:
+To make our life easier, I created a script for the api calls, copy it from the repo to the path:
 ```
 mv ./send_wuzapi /usr/local/bin/send_wuzapi
 sudo chmod +x /usr/local/bin/send_wuzapi
 send_wuzapi /chat/send/text -d '{"Phone": "972585011102", "Body": "Test Easier message!"}'
 ```
+
+At this point I had a lot of trial and error with the code, so figured “why not make CI/CD for that part!”
+Create Github self-hosted runner (linux, on actions settings). I forgot the machine is using ARM64 architecture, so choose that option on the install
+After the install process (explanation on Github page), run this to create a service:
+```
+./svc.sh install && ./svc.sh start
+``` 
+In the repo, the workflow sits in file  - .github/workflows/deploy.yml
+Now after connecting your IDE to github it's possible to commit and let the CI/CD do the magic!
