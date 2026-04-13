@@ -44,21 +44,21 @@ Restart services
 Restart specific service
 
 ### WuzAPI:
-First, create a user:
+First, create a user (generate a random token and save it:
 ```
 curl -X POST http://localhost:8080/admin/users \
-  -H "Authorization: my_secure_token_123" \
+  -H "Authorization:insert_tokent_here" \
   -H "Content-Type: application/json" \
   -d '{"name": "MyBot", "token": "MyUserToken123"}'
 ```
 Than create a session connection:
 ```
 curl -X POST http://localhost:8080/session/connect \
-  -H "Token: MyUserToken123" \
+  -H "Token:insert_tokent_here" \
   -H "Content-Type: application/json" \
   -d '{"Subscribe":["Message","ReadReceipt"]}'
 
-curl -s -H "Token: MyUserToken123" http://localhost:8080/session/qr
+curl -s -H "Token:insert_tokent_here" http://localhost:8080/session/qr
 ```
 Now this will output a base64 image QR, you can eiter decode it from [This Site](https://base64.guru/converter/decode/image), or view the logs with the command from before.
 Open your whatsapp app and go to connected devices. scan the QR, and voila, we got a new session!
