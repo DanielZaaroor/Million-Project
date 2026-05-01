@@ -1,5 +1,8 @@
 from utils import extractText, log
-from counting_check import save_valid_count, set_suspended
+from counting_check import save_valid_count, set_suspended, get_CurrData
+from wuzapi_client import send_alert
+from configs import ADMIN_GROUP_JID
+
 
 def adminActions(data):
   """ Handle messages for admin group"""
@@ -7,12 +10,18 @@ def adminActions(data):
   # info = event.get("Info", {})
   message_content = event.get("Message", {})
 
-  text, is_edited = extractText(message_content)
+  extracted = extractText(message_content)
+  if len(extracted) == 3:
+      text, is_edited, target_id = extracted
+  else:
+      text, is_edited = extracted
   if text == None:
       return False
   
   if("Insert-" in text):
      return numOverride(text)
+  if("Status" in text):
+     return statsReport()
   
 
   return True
@@ -23,11 +32,20 @@ def numOverride(text):
     """Initiate number override in the million group"""
     try:
       num = int(text[7:])
-      save_valid_count(num, "admin","admin")
-      set_suspended(False,True) #also deelte buffer
-      log(f"[✓] Admin Override with number - {num}")
+      save_valid_count(num, "admin", "admin", "admin_override")
+      set_suspended(False,True) #also deletes buffer
+      log(f" [✓] Admin Override with number - {num}")
       return True
        
     except ValueError as e:
-      log(f"[!] Invalid override number: {e}")
+      log(f" [!] Invalid override number: {e}")
       return False
+    
+def statsReport():
+    """Prints the latest group status"""
+    currData = get_CurrData()
+    if not currData:
+      return send_alert(f"❔ empthy DB, couldn't find last number.", ADMIN_GROUP_JID)
+    
+    last_number, last_sender, last_pushname, last_msg_id = currData
+    return send_alert(f"🆙 last number: {last_number}, by - {last_pushname}", ADMIN_GROUP_JID)

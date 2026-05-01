@@ -8,6 +8,7 @@ def extractText(message_content):
     """Extracts the text from any type of message."""
     text = ""
     is_edited = False
+    target_id = None
     if "conversation" in message_content:
         text = message_content["conversation"]
     elif "extendedTextMessage" in message_content:
@@ -22,6 +23,7 @@ def extractText(message_content):
         if "editedMessage" in message_content["protocolMessage"]:
             is_edited = True
             text = message_content["protocolMessage"]["editedMessage"].get("conversation", "")
+            target_id = message_content["protocolMessage"]["key"].get("ID", "")
     else :
         text = None
-    return text, is_edited
+    return text, is_edited, target_id

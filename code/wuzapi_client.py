@@ -3,8 +3,7 @@ import requests #installed in dockerfile
 import configs
 from utils import log
 
-
-def send_alert(message, delay=0):
+def send_alert(message, dest, delay=0):
     """Sends a warning message to the group via WuzAPI."""
     if(delay > 0):
         threading.Timer(delay, send_alert, args=(message, -1)).start()
@@ -16,7 +15,7 @@ def send_alert(message, delay=0):
     log(f" [!] SENDING ALERT: {message}")
     url = f"{configs.WUZAPI_HOST}/chat/send/text"
     headers = { "Token": configs.ADMIN_TOKEN, "Content-Type": "application/json",}
-    payload = { "Phone": configs.ALERT_GROUP_JID, "Body": f"⚠️ {message}" }
+    payload = { "Phone": dest, "Body": f"{message}" }
     try:
         requests.post(url, json=payload, headers=headers)
     except Exception as e:

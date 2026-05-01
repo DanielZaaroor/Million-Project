@@ -4,8 +4,10 @@ services:
     restart: always
     ports:
       - "8080:8080"
+    entrypoint: /bin/sh -c "./wuzapi | tee -a /app/logs/wuzapi.log"
     volumes:
       - ./wuzapi_data:/app/dbdata
+      - ./logs/:/app/logs
     environment:
       - WUZAPI_ADMIN_TOKEN=${ADMIN_TOKEN}
       - RABBITMQ_URL=${RABBITMQ_URL}
@@ -21,13 +23,14 @@ services:
       - "5672:5672"   # Messaging port
       - "15672:15672" # Dashboard (optional)
     volumes:
-      - ./rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq_data:/var/lib/rabbitmq #save queue in case of container dies
 
   logic_engine:
     build: ./code
     container_name: logic_engine  
     volumes:
       - ./code:/app/
+      - ./logs:/var/log/logic
     restart: always
     depends_on:
       - rabbitmq

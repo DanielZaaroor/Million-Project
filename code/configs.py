@@ -31,7 +31,8 @@ def init_database():
             number INTEGER PRIMARY KEY,
             sender TEXT,
             push_name TEXT,
-            timestamp REAL
+            timestamp REAL,
+            msg_id TEXT
         )
     """)
 
@@ -49,6 +50,7 @@ def init_database():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS pending_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            msg_id TEXT,
             data TEXT
         )
     """)
@@ -59,4 +61,3 @@ def init_database():
     if row is not None:
         IS_SUSPENDED = bool(row[0])
     log(" [*] Database is ready and memory state loaded")
-
