@@ -65,7 +65,8 @@ def checkEditedValidDB(target_id, PushName, found_numbers):
     if valid_row:
         old_number = valid_row[0]
         if numberCheck(found_numbers, old_number) < 0:
-            send_alert(f"‼️ Panic!! {PushName} edited their message to change the valid number ({old_number})!!", ALERT_GROUP_JID)
+            log("‼️ Panic!! {PushName} edited their message to change the valid number")
+            # send_alert(f"‼️ Panic!! {PushName} edited their message to change the valid number ({old_number})!!", ALERT_GROUP_JID)
         return True
 
 
