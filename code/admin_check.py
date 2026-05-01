@@ -12,9 +12,9 @@ def adminActions(data):
 
   extracted = extractText(message_content)
   if len(extracted) == 3:
-      text, is_edited, target_id = extracted
+      text, _, _ = extracted
   else:
-      text, is_edited = extracted
+      text, _ = extracted
   if text == None:
       return False
   
@@ -47,5 +47,5 @@ def statsReport():
     if not currData:
       return send_alert(f"❔ empthy DB, couldn't find last number.", ADMIN_GROUP_JID)
     
-    last_number, last_sender, last_pushname, last_msg_id = currData
+    last_number, _, last_pushname, _ = currData
     return send_alert(f"🆙 last number: {last_number}, by - {last_pushname}", ADMIN_GROUP_JID)

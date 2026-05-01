@@ -78,7 +78,7 @@ def Verdict(valid_number_found, sender, pushname, currData, msg_id):
     # RULE: No double messages from same sender
     sender = sender
     PushName = pushname
-    last_number, last_sender, last_pushname, last_msg_id = currData
+    last_number, last_sender, _, _ = currData
 
     if sender == last_sender:
         send_alert(f"⚠️ Double Count! {PushName} sent 2 messages in a row.", ALERT_GROUP_JID)
@@ -119,14 +119,14 @@ def checkPendingMessage():
             
             extracted = extractText(message_content) 
             if len(extracted) == 3:
-                text, is_edited, target_id = extracted
+                text, is_edited, _ = extracted
             else:
                 text, is_edited = extracted
                 
             found_numbers = re.findall(r'\d+', text)
             
             currData = get_CurrData()                
-            last_number, last_sender, last_pushname, last_msg_id = currData
+            last_number, _, _, last_msg_id = currData
             valid_number_found = numberCheck(found_numbers, last_number + 1)
             
             # Run Verdict
@@ -164,7 +164,7 @@ def handleNewCount(data):
         message_content = event.get("Message", {})
         extracted = extractText(message_content)
         if len(extracted) == 3:
-            text, is_edited, target_id = extracted
+            text, is_edited, _ = extracted
         else:
             text, is_edited = extracted
             
@@ -188,7 +188,7 @@ def handleNewCount(data):
             return True
 
 
-        last_number, last_sender, last_pushname, last_msg_id = currData
+        last_number, _, _, last_msg_id = currData
 
         valid_number_found = numberCheck(found_numbers, last_number + 1)
 

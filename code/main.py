@@ -36,10 +36,6 @@ def callback(ch, method, properties, body):
         
         if res == False:
             log(f"[!] Message on group {msg_chat} failed to proccess")
-
-        
-        ch.basic_ack(delivery_tag=method.delivery_tag)
-        return
         
         ch.basic_ack(delivery_tag=method.delivery_tag) #ack the message anyway
         return 
