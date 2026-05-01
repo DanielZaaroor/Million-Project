@@ -45,7 +45,7 @@ def statsReport():
     """Prints the latest group status"""
     currData = get_CurrData()
     if not currData:
-      return send_alert(f"❔ empthy DB, couldn't find last number.", ADMIN_GROUP_JID)
+      return send_alert("❔ empthy DB, couldn't find last number.", ADMIN_GROUP_JID)
     
     last_number, _, last_pushname, _ = currData
     return send_alert(f"🆙 last number: {last_number}, by - {last_pushname}", ADMIN_GROUP_JID)
