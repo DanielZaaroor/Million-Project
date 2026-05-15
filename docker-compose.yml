@@ -24,6 +24,8 @@ services:
       - "15672:15672" # Dashboard (optional)
     volumes:
       - ./rabbitmq_data:/var/lib/rabbitmq #save queue in case of container dies
+    environment:
+      - TZ=Asia/Jerusalem
 
   logic_engine:
     build: ./code

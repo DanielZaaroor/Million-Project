@@ -6,6 +6,8 @@ import json
 import time
 import re
 
+ALERT_DELAY = 90
+
 # --- Helper Functions ---
 
 def get_CurrData():
@@ -57,7 +59,7 @@ def checkEditedPending(target_id, PushName, data):
         cursor.execute("UPDATE pending_messages SET data = ? WHERE msg_id = ?", (json.dumps(data), target_id))
         conn.commit()
         log(f" [*] Mistake Window. Edited message by {PushName} updated in buffer.")
-        return True
+        return
     
 def checkEditedValidDB(target_id, PushName, found_numbers):
     cursor.execute("SELECT number FROM valid_counts WHERE msg_id = ?", (target_id,))
@@ -65,9 +67,9 @@ def checkEditedValidDB(target_id, PushName, found_numbers):
     if valid_row:
         old_number = valid_row[0]
         if numberCheck(found_numbers, old_number) < 0:
-            log("‼️ Panic!! {PushName} edited their message to change the valid number")
-            # send_alert(f"‼️ Panic!! {PushName} edited their message to change the valid number ({old_number})!!", ALERT_GROUP_JID)
-        return True
+            log(f" [!!] Sabotage, {PushName} edited away the valid number ({old_number})!!")
+            # send_alert(f" [!!] Sabotage, {PushName} edited away the valid number ({old_number})!!", ALERT_GROUP_JID)
+    return
 
 
 
@@ -93,10 +95,10 @@ def Verdict(valid_number_found, sender, pushname, currData, msg_id):
     
     # No numbers
     if valid_number_found == -1:
-        send_alert(f"⚠️ {PushName} sent a message with NO numbers!, expected {last_number+1}.", ALERT_GROUP_JID, 300)        
+        send_alert(f"⚠️ NO numbers! message by {PushName}, expected {last_number+1}.", ALERT_GROUP_JID, ALERT_DELAY)        
     #only wrong number found
     if valid_number_found == -2:
-        send_alert(f"⚠️ Wrong Number by {PushName}! Expected {last_number+1}.", ALERT_GROUP_JID, 300)           
+        send_alert(f"⚠️ Wrong Number by {PushName}! Expected {last_number+1}.", ALERT_GROUP_JID, ALERT_DELAY)           
 
     set_suspended(True,False)
     return False
@@ -134,6 +136,7 @@ def checkPendingMessage():
             if is_edited:
                 checkEditedPending(last_msg_id, PushName, data)
                 checkEditedValidDB(last_msg_id, PushName, found_numbers)
+                return
                 
             success = Verdict(valid_number_found, sender, PushName, currData, msg_id)
             
@@ -165,7 +168,7 @@ def handleNewCount(data):
         message_content = event.get("Message", {})
         extracted = extractText(message_content)
         if len(extracted) == 3:
-            text, is_edited, _ = extracted
+            text, is_edited, edit_target_id = extracted
         else:
             text, is_edited = extracted
             
@@ -198,7 +201,7 @@ def handleNewCount(data):
             if valid_number_found > 0:
                 send_alert(f"✅ Mistake fixed by {PushName}", ALERT_GROUP_JID)
                 if is_edited: #check all in buffer
-                    save_valid_count(valid_number_found, sender, PushName, last_msg_id)
+                    save_valid_count(valid_number_found, sender, PushName, edit_target_id)
                     set_suspended(False, False)
                     checkPendingMessage()
                 else:
@@ -217,7 +220,8 @@ def handleNewCount(data):
 
         if is_edited:
             checkEditedValidDB(last_msg_id,PushName,found_numbers)
-        Verdict(valid_number_found, sender, PushName, currData, msg_id)
+        else:
+            Verdict(valid_number_found, sender, PushName, currData, msg_id)
         return True
     
 

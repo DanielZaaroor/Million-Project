@@ -6,11 +6,11 @@ from utils import log
 def send_alert(message, dest, delay=0):
     """Sends a warning message to the group via WuzAPI."""
     if(delay > 0):
-        threading.Timer(delay, send_alert, args=(message, -1)).start()
+        threading.Timer(delay, send_alert, args=(message, dest, -1)).start()
         return
 
     if (delay == -1 and configs.IS_SUSPENDED == False): 
-        return   #called back after 5 minutes and group not suspended anymore
+        return #if called back after delay and group is not suspended anymore
 
     log(f" [!] SENDING ALERT: {message}")
     url = f"{configs.WUZAPI_HOST}/chat/send/text"

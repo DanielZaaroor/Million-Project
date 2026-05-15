@@ -1,7 +1,7 @@
 from utils import extractText, log
 from counting_check import save_valid_count, set_suspended, get_CurrData
 from wuzapi_client import send_alert
-from configs import ADMIN_GROUP_JID
+import configs
 
 
 def adminActions(data):
@@ -45,7 +45,9 @@ def statsReport():
     """Prints the latest group status"""
     currData = get_CurrData()
     if not currData:
-      return send_alert("❔ empthy DB, couldn't find last number.", ADMIN_GROUP_JID)
+      return send_alert("❔ empthy DB, couldn't find last number.", configs.ADMIN_GROUP_JID)
     
     last_number, _, last_pushname, _ = currData
-    return send_alert(f"🆙 last number: {last_number}, by - {last_pushname}", ADMIN_GROUP_JID)
+    if configs.IS_SUSPENDED:
+      return send_alert(f"🚫 suspended from: {last_number}, by - {last_pushname}", configs.ADMIN_GROUP_JID)
+    return send_alert(f"🆙 last number: {last_number}, by - {last_pushname}", configs.ADMIN_GROUP_JID)
