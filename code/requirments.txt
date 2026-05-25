@@ -1,0 +1,4 @@
+pika==1.4.0
+requests==2.34.2
+blackboxprotobuf==1.0.1
+cryptography
