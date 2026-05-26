@@ -4,7 +4,6 @@ import base64
 import hmac
 import hashlib
 import blackboxprotobuf
-import json
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 def log(msg):
