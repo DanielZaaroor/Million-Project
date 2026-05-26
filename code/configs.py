@@ -32,9 +32,16 @@ def init_database():
             sender TEXT,
             push_name TEXT,
             timestamp REAL,
-            msg_id TEXT
+            msg_id TEXT,
+            msg_secret TEXT
         )
     """)
+
+    # Migration: Add msg_secret to existing table if it is missing
+    cursor.execute("PRAGMA table_info(valid_counts)")
+    columns = [column[1] for column in cursor.fetchall()]
+    if "msg_secret" not in columns:
+        cursor.execute("ALTER TABLE valid_counts ADD COLUMN msg_secret TEXT")
 
     # Table 2: The Suspension State (single row)
     cursor.execute("""
