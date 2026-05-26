@@ -1,5 +1,4 @@
 from datetime import datetime
-from counting_check import getMessageSecret
 import base64
 import hmac
 import hashlib
@@ -33,7 +32,8 @@ def extractText(message_content):
 
 def extractTextEdited(message_content, sender):
     """Extracts the text from edited message."""
-    text, target_id = None
+    from counting_check import getMessageSecret
+    text = target_id = targetMsgSecret = None
     if "protocolMessage" in message_content:
         if "editedMessage" in message_content["protocolMessage"]:
             text = message_content["protocolMessage"]["editedMessage"].get("conversation", "")
