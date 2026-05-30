@@ -51,12 +51,12 @@ curl -X POST http://localhost:8080/admin/users \
   -H "Content-Type: application/json" \
   -d '{"name": "MyBot", "token": "MyUserToken123"}'
 ```
-Than create a session connection:
+Than create a session connection: (add ,["ReadReceipt"] to include them)
 ```
 curl -X POST http://localhost:8080/session/connect \
   -H "Token:insert_tokent_here" \
   -H "Content-Type: application/json" \
-  -d '{"Subscribe":["Message","ReadReceipt"]}'
+  -d '{"Subscribe":["Message"]}'
 
 curl -s -H "Token:insert_tokent_here" http://localhost:8080/session/qr
 ```

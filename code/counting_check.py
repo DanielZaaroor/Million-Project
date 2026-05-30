@@ -173,13 +173,13 @@ def handleNewCount(data):
         PushName = info.get("PushName")
 
         # 1. Extract Text and find numbers in it
-        EditField = info.get("Edit", {})
+        EditField = str(info.get("Edit", ""))
         match EditField:
-            case 1:
+            case "1":
                 is_edited = True
-            case 2 | 3: # message pinned | newlatter
+            case "2" | "3": # message pinned | newlatter
                 return True
-            case 7 | 8:
+            case "7" | "8":
                 # is_deleted = False # add deleteion checks on next version!!!
                 return True 
             case _:
