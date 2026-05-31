@@ -34,19 +34,19 @@ def extractTextEdited(message_content, sender):
     """Extracts the text from edited message."""
     from counting_check import getMessageSecret
     text = target_id = targetMsgSecret = None
-    if "protocolMessage" in message_content:
+    if "protocolMessage" in message_content:  ##case not encrypted
         if "editedMessage" in message_content["protocolMessage"]:
-            text = message_content["protocolMessage"]["editedMessage"].get("conversation", "")
+            edited_msg = message_content["protocolMessage"]["editedMessage"]
+            text, _ = extractText(edited_msg)
             target_id = message_content["protocolMessage"]["key"].get("ID", "")
             targetMsgSecret = getMessageSecret(target_id)
-
-    elif "secretEncryptedMessage" in message_content:
+            
+    elif "secretEncryptedMessage" in message_content: ## case encrypted
         target_id = message_content["secretEncryptedMessage"]["targetMessageKey"].get("ID", "")
         targetMsgSecret = getMessageSecret(target_id)
         encPayload = message_content["secretEncryptedMessage"].get("encPayload","")
         encIV = message_content["secretEncryptedMessage"].get("encIV","")
         encPayload = message_content["secretEncryptedMessage"].get("encPayload","")
-
         text = decryptEditedMessage(targetMsgSecret, encPayload, encIV, target_id, sender)
         
     return text, target_id, targetMsgSecret
@@ -86,8 +86,28 @@ def decryptEditedMessage(message_secret_b64, enc_payload_b64, enc_iv_b64, messag
         # The result is a Protobuf object.
         try:
             message_dict, _ = blackboxprotobuf.decode_message(decrypted_bytes)
-            return message_dict['12']['14']['1'].decode('utf-8')
-            
+            edited_msg = message_dict.get('12', {}).get('14', {})
+            ##example - {'12': {'14': {'3': {'3': b'Edited message',....
+            def get_first_string(obj):
+                """text will be in the first string in the object"""
+                if isinstance(obj, bytes):
+                    try:
+                        text = obj.decode('utf-8')
+                        if text.strip():
+                            return text
+                    except UnicodeDecodeError:
+                        pass
+                elif isinstance(obj, dict):
+                    for v in obj.values():
+                        res = get_first_string(v)
+                        if res: return res
+                elif isinstance(obj, list):
+                    for v in obj:
+                        res = get_first_string(v)
+                        if res: return res
+                return None
+
+            return get_first_string(edited_msg)
         except Exception as e:
             log(f"Failed to strip protobuf: {e}")
 
