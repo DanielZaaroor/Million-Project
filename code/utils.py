@@ -44,9 +44,12 @@ def extractTextEdited(message_content, sender):
     elif "secretEncryptedMessage" in message_content: ## case encrypted
         target_id = message_content["secretEncryptedMessage"]["targetMessageKey"].get("ID", "")
         targetMsgSecret = getMessageSecret(target_id)
+        if not targetMsgSecret:
+            log(f" [!] Missing message secret for target ID {target_id}. Cannot decrypt edit.")
+            return None, target_id, None
+            
         encPayload = message_content["secretEncryptedMessage"].get("encPayload","")
         encIV = message_content["secretEncryptedMessage"].get("encIV","")
-        encPayload = message_content["secretEncryptedMessage"].get("encPayload","")
         text = decryptEditedMessage(targetMsgSecret, encPayload, encIV, target_id, sender)
         
     return text, target_id, targetMsgSecret
