@@ -101,7 +101,7 @@ def checkEditedValidDB(target_id, PushName, found_numbers):
         old_number = valid_row[0]
         if numberCheck(found_numbers, old_number) < 0:
             # log(f" [!!] Sabotage, {PushName} edited away the valid number ({old_number})!!")
-            send_alert(f" [!!] Sabotage, {PushName} edited the valid number - [{old_number}]", ALERT_GROUP_JID)
+            send_alert(f"❗ Sabotage, {PushName} edited the valid number - [{old_number}]", ALERT_GROUP_JID)
     return
 
 def checkPendingMessage():
