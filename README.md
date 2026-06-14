@@ -2,9 +2,12 @@
 Goal - Improving the counting flow of the group by checking for errors and missing numnbers.
 
 > [!IMPORTANT]
-> - For full Project setup details, read [SETUP.md](./SETUP.md).
+> - For full Project setup details, read [SETUP.md](./extras/SETUP.md).
 > - To dive straight into the code, checkout the [code dir](./code)
-> - For message examples and whatsapp quirks, go to [Whats_up_whatsapp.md](./Whats_up_whatsapp.md)
+> - For message examples and whatsapp quirks, go to [Whats_up_whatsapp.md](./extras/Whats_up_whatsapp.md)
+
+> [!NOTE]
+>  GEN-AI was used in this project mostly for planning and for some code writing.
 
 ## 1. The Problem - automating the check flow of the WhatsApp group “counting to million”
 - Group Rules:
@@ -30,10 +33,10 @@ Goal - Improving the counting flow of the group by checking for errors and missi
   - Those services will run as docker containers on an Ubuntu VM, managed by Docker-Compose
   - The code repository sits on Github, and using Github Actions we will deploy it to the VM and reload the services.
   - Diagram below:
-  ![drawio diagram, also present in the repo.](https://drive.google.com/file/d/15v_vk_C5sg3od7v4OIKGHKp0227iYOyE/view?usp=drive_link)
+  ![drawio diagram, also present in the repo.](./extras/million-architecture.png)
 
 ## 3. Progress
-1. Phase 1 - preparing the working environemt environment, described on [SETUP.md](./SETUP.md).
+1. Phase 1 - preparing the working environemt environment, described on [SETUP.md](./extras/SETUP.md).
   > DoD -  
   > all 3 services are running - basic python code can read and print messages from RabbitMQ.  
   > Wuzapi connection is able to send messages back to whatsapp.
