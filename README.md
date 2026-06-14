@@ -1,80 +1,49 @@
 # Million-Project
-Improving the counting flow of the group by checking for errors and missing numnbers.
+Goal - Improving the counting flow of the group by checking for errors and missing numnbers.
 
-## 1. Prequisites
-As the working environment for the services, I used an always-free Oracle Ampre Ubuntu VM.
-I created a network and subnet before, then the VM.
-It will probably only be available with PAYGO account, but if configured right should stay free of cost.
+> [!IMPORTANT]
+> - For full Project setup details, read [SETUP.md](./extras/SETUP.md).
+> - To dive straight into the code, checkout the [code dir](./code)
+> - For message examples and whatsapp quirks, go to [Whats_up_whatsapp.md](./extras/Whats_up_whatsapp.md)
 
-With the new VM you can go to root and clone the repo:
-```
-sudo mkdir /million-project /million-project/wuzapi-data /million-project/rabbitmq_data
-cd /million-project && 
-git clone https://github.com/DanielZaaroor/Million-Project.git
-touch .env
-```
-> env is not here obviously, figure it out.
-## 2. Installations
-### docker
-```
-sudo apt update && sudo apt upgrade -y
-sudo apt install ca-certificates curl gnupg lsb-release -y
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt update
-sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-```
-**verify with:    docker run hello-world**
-> To run docker commands without root, run this command then logout:     **sudo usermod -aG docker ${USER}**
+> [!NOTE]
+>  GEN-AI was used in this project mostly for planning and for some code writing.
 
-Important Docker compose CLI commands: (you should have cloned the repo already)
-```
-docker-compose up -d --build
-docker-compose logs --no-color -f wuzapi | less 
-docker-compose down && docker-compose up -d
-docker compose up -d --build --force-recreate logic_engine
-```
-For first build
-To view logs of one service
-Restart services
-Restart specific service
+## 1. The Problem - automating the check flow of the WhatsApp group “counting to million”
+- Group Rules:
+  - Every message must contain a valid number! (previous_num+1) the rest of the message can be anything you want. The number can be written at any place in the message.
+  - The same person can’t write more than one number in a row.
+  - Delete duplicate numbers - there should only be one copy of each number. Admins will delete incorrect messages.
+  - No commas in numbers. No Stickers/gifs allowed.
+  - Mistakes can be fixed, as long as the counting flow stays intact
+- The group is already running, with a current number around 410,000. Admins manually check each number, sometimes mistakes can be found hours later.
+- Ideally, mistakes should be found in the 15 minutes window when users can still edit the incorrect numbers. If not, the progress after the mistake will be lost.
 
-### WuzAPI:
-First, create a user (generate a random token and save it:
-```
-curl -X POST http://localhost:8080/admin/users \
-  -H "Authorization:insert_tokent_here" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "MyBot", "token": "MyUserToken123"}'
-```
-Than create a session connection: (add ,["ReadReceipt"] to include them)
-```
-curl -X POST http://localhost:8080/session/connect \
-  -H "Token:insert_tokent_here" \
-  -H "Content-Type: application/json" \
-  -d '{"Subscribe":["Message"]}'
+## 2. The Solution - building a Headless Automation
+- The journee of a message:
+  1. Filters - sent to the target group, not a sticker, has text, following rules.
+  2. If it's valid (different sender, prev+1) - register to DB.
+  3. Else, start the mistake window - wait 1 minutes for it to be edited. Then send an alert. All messages sent in the mistake window will be quickly checked for the absent number, then saved on a buffer and checked after the fix.
+  4. If the mistake was fixed by editing, check the buffer. If by someone else, the buffer messages will be deleted, we don't need those messages anymore.
+  5. Immediate alerts will be sent only for non-mistake events, like stickers or double messages from the same sender.
+  > If the mistake was fixed before the alert fired, it will not fire.
+- Architecture:
+  - We will use Wuzapi for WhatsApp integration, RabbitMQ for message queuing, and a Python app for the actual logic. Previous numbers will be saved on SQLite DB.
+  - Wuzapi - acts as a connected device, like Whatsapp web. Uses the Noise Protocol to receive all events related to the whatsapp account.
+  - Those services will run as docker containers on an Ubuntu VM, managed by Docker-Compose
+  - The code repository sits on Github, and using Github Actions we will deploy it to the VM and reload the services.
+  - Diagram below:
+  ![drawio diagram, also present in the repo.](./extras/million-architecture.png)
 
-curl -s -H "Token:insert_tokent_here" http://localhost:8080/session/qr
-```
-Now this will output a base64 image QR, you can eiter decode it from [This Site](https://base64.guru/converter/decode/image), or view the logs with the command from before.
-Open your whatsapp app and go to connected devices. scan the QR, and voila, we got a new session!
-
-To make our life easier, I created a script for the api calls, copy it from the repo to the path:
-```
-mv ./send_wuzapi /usr/local/bin/send_wuzapi
-sudo chmod +x /usr/local/bin/send_wuzapi
-send_wuzapi /chat/send/text -d '{"Phone": "972585011102", "Body": "Test Easier message!"}'
-```
-
-At this point I had a lot of trial and error with the code, so figured “why not make CI/CD for that part!”
-Create Github self-hosted runner (linux, on actions settings). I forgot the machine is using ARM64 architecture, so choose that option on the install
-After the install process (explanation on Github page), run this to create a service:
-```
-./svc.sh install && ./svc.sh start
-``` 
-In the repo, the workflow sits in file  - .github/workflows/deploy.yml
-Now after connecting your IDE to github it's possible to commit and let the CI/CD do the magic!
+## 3. Progress
+1. Phase 1 - preparing the working environemt environment, described on [SETUP.md](./extras/SETUP.md).
+  > DoD -  
+  > all 3 services are running - basic python code can read and print messages from RabbitMQ.  
+  > Wuzapi connection is able to send messages back to whatsapp.
+2. Phase 2 - logic engine V1
+  - One main.py script, with functions dedicated only to the million group.
+  - Later Refactored to handle edited messages.
+  - CICD added with Github actions.
+3. Phase 3 - logic engine V2:
+  - Split the app into multiple files. main.py now initializes queue and route messages based on groups to specific scripts.
+  - Admin actions added for immediate number override directly from phone, and to get current bot status.

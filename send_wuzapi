@@ -1,5 +1,5 @@
 #!/bin/bash
-TOKEN="BiGDWG7Y8JQsoTfKAdatYZktOdYxoafPQb2l8XWHH8G2X4jcBzy7rveW8vVJF7CI"
+TOKEN="TOKENHERE"
 BASE_URL="http://localhost:8080"
 
 # The "$@" passes whatever arguments you type to curl
