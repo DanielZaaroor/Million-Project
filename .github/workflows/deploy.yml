@@ -1,16 +1,25 @@
-name: Deploy Code Changes
+name: Deploy Project
 on:
   push:
     branches: [ main ]
     paths:
       - 'code/**'
+      - 'docker-compose.yml'
 
 jobs:
-  deploy_code:
+  deploy:
     runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check changed files
+        id: changes
+        uses: tj-actions/changed-files@v44
+        with:
+          files: docker-compose.yml
 
       - name: Lint Python
         run: |
@@ -20,33 +29,14 @@ jobs:
         run: |
           cd /million-project
           rsync -av --include='code/***' --include='docker-compose.yml' --exclude='*' ${{ github.workspace }}/ /million-project/   
-          docker compose up -d --build --force-recreate logic_engine
-
-      - name: Verify deployment
-        run: |
-          sleep 5
-          docker inspect --format='{{.State.Status}}' logic_engine | grep -q "^running$" || \
-          (echo "Container failed to start!" && docker logs logic_engine --tail 20 && exit 1)
-
-name: Deploy Docker Compose Changes
-on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'docker-compose.yml'
-
-jobs:
-  deploy_docker:
-    runs-on: self-hosted
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy Services
-        run: |
-          cd /million-project
-          rsync -av --include='code/***' --include='docker-compose.yml' --exclude='*' ${{ github.workspace }}/ /million-project/   
-          docker-compose down && docker-compose up -d --build --force-recreate
+          
+          if [ "${{ steps.changes.outputs.any_changed }}" == "true" ]; then
+            echo "Docker Compose file changed. Restarting all services..."
+            docker-compose down && docker-compose up -d --build --force-recreate
+          else
+            echo "Only code changed. Restarting logic_engine..."
+            docker compose up -d --build --force-recreate logic_engine
+          fi
 
       - name: Verify deployment
         run: |

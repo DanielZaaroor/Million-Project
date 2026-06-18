@@ -6,7 +6,7 @@ import json
 import time
 import re
 
-ALERT_DELAY = 90
+ALERT_DELAY = 60
 
 # --- Helper Functions ---
 
@@ -125,14 +125,11 @@ def checkPendingMessage():
 
 # --- Core Logic ---
 
-def Verdict(valid_number_found, sender, pushname, currData, msg_id, msg_secret, data):
+def Verdict(valid_number_found, sender, PushName, currData, msg_id, msg_secret, data):
     """Boolean: Checks if found numbers are valid"""
     
     # RULE: No double messages from same sender
-    sender = sender
-    PushName = pushname
     last_number, last_sender, _, _ = currData
-
     if sender == last_sender:
         send_alert(f"⚠️ Double Count! {PushName} sent 2 messages in a row.", ALERT_GROUP_JID)
         return False #don't suspend, next number will be correct, admin will delete this one.
@@ -208,7 +205,9 @@ def handleNewCount(data):
             log(f" [!] Initialized DB with start number: {seed_num}")
             return True
 
-        last_number, last_sender, _, _ = currData
+        last_number, last_sender, _, last_msgid = currData
+        if msg_id == last_msgid:
+            return True #probably an wuzapi duplicate, ignore
 
         valid_number_found = numberCheck(found_numbers, last_number + 1)
 
