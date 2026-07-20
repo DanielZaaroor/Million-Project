@@ -97,8 +97,9 @@ def checkEditedValidDB(target_id, PushName, found_numbers):
     if valid_row:
         old_number = valid_row[0]
         if numberCheck(found_numbers, old_number) < 0:
-            # log(f" [!!] Sabotage, {PushName} edited away the valid number ({old_number})!!")
+            log(f" [!] Valid number edited away by {PushName} ({old_number})")
             send_alert(f"❗ Sabotage, {PushName} edited the valid number - [{old_number}]", ALERT_GROUP_JID)
+            # set_suspended(True, False)
     return
 
 def checkDeletedValidDB(target_id, PushName):
@@ -106,12 +107,18 @@ def checkDeletedValidDB(target_id, PushName):
     cursor.execute("SELECT number, timestamp FROM valid_counts WHERE msg_id = ?", (target_id,))
     valid_row = cursor.fetchone()
     if valid_row:
+        if configs.IS_SUSPENDED:
+            is_fixed = checkPendingMessage()
+            if is_fixed:
+                return #dont panic fix was in buffer
+        else:
+            set_suspended(True,False)
         old_number, deleted_timestamp = valid_row
-        send_alert(f"*❗Sabotage - {PushName} Deleted the valid number - [{old_number}]*\nCount should return to {deleted_timestamp}", ALERT_GROUP_JID)
+        readable_time = time.strftime('%d/%m/%Y %H:%M:%S', time.localtime(deleted_timestamp))
+        send_alert(f"*❗Sabotage - {PushName} Deleted the valid number - [{old_number}]*\n- Continue from {readable_time}", ALERT_GROUP_JID, ALERT_DELAY)
         cursor.execute("DELETE FROM valid_counts WHERE msg_id = ?OR timestamp > ? ", (target_id, deleted_timestamp))
         conn.commit()
-        log(f" [*] Purged all records from number [{old_number}] and time [{deleted_timestamp}].")
-    return
+        log(f" [!!] Purged all records from number [{old_number}] and time [{readable_time}].")
 
 def checkDeletedPending(target_id, PushName):
     """If the original message was buffered, remove it from the buffer."""
@@ -140,8 +147,9 @@ def checkPendingMessage():
         
         if configs.IS_SUSPENDED:
             log(" [*] Buffered message failed validation. Re-suspending.")
-            break
-    log(" [*] Finished processing. Let the count continue!")
+            return False #stop processing further, wait for admin to fix the mistake
+    log(" [*] Finished processing.")
+    return True
 
 # --- Core Logic ---
 def Verdict(valid_number_found, sender, PushName, currData, msg_id, msg_secret, data):
