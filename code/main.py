@@ -1,5 +1,3 @@
-from multiprocessing.util import info
-
 import pika  #installed in dockerfile
 import json
 import time
