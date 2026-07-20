@@ -36,7 +36,6 @@ def getMessageSecret(msg_id):
             
     return None
 
-
 def save_valid_count(number, sender, push_name, msg_id, msg_secret=None):
     """Inserts the new number into the DB."""
     cursor.execute("""
@@ -44,7 +43,6 @@ def save_valid_count(number, sender, push_name, msg_id, msg_secret=None):
         VALUES (?, ?, ?, ?, ?, ?)
     """, (number, sender, push_name, time.time(), msg_id, msg_secret))
     conn.commit()
-
 
 def set_suspended(is_suspended: bool, delete: bool):
     """Updates the single row in the state table."""
@@ -61,7 +59,6 @@ def set_suspended(is_suspended: bool, delete: bool):
 
     conn.commit()
     
-
 def numberCheck(num_list, to_find):
     """returns: [number] if found in list. [-1] list is empty. [-2] no number match goal"""
     if not num_list:
@@ -71,7 +68,6 @@ def numberCheck(num_list, to_find):
         if num == to_find:
             return num
     return -2
-
 
 def checkEditedPending(target_id, PushName, data):        
     cursor.execute("SELECT id, data FROM pending_messages WHERE msg_id = ?", (target_id,))
@@ -104,6 +100,26 @@ def checkEditedValidDB(target_id, PushName, found_numbers):
             send_alert(f"❗ Sabotage, {PushName} edited the valid number - [{old_number}]", ALERT_GROUP_JID)
     return
 
+def checkDeletedValidDB(target_id, PushName):
+    cursor.execute("SELECT number FROM valid_counts WHERE msg_id = ?", (target_id,))
+    valid_row = cursor.fetchone()
+    old_number = valid_row[0]
+    if valid_row:
+        send_alert(f"❗Sabotage - {PushName} Deleted the valid number - [{old_number}]", ALERT_GROUP_JID)
+        cursor.execute("DELETE FROM pending_messages WHERE msg_id = ?", (target_id,))
+        conn.commit()
+        log(f" [*] Deleted message [{old_number}] by {PushName} from buffer.")
+    return
+
+def checkDeletedPending(target_id, PushName):
+    cursor.execute("SELECT id FROM pending_messages WHERE msg_id = ?", (target_id,))
+    pending_row = cursor.fetchone()
+    if pending_row:
+        cursor.execute("DELETE FROM pending_messages WHERE msg_id = ?", (target_id,))
+        conn.commit()
+        log(f" [*] Mistake Window. Deleted message by {PushName} from buffer.")
+        return
+
 def checkPendingMessage():
     """After Mistake Window - checks all buffered messages."""
     log(" [*] Processing buffered messages...")
@@ -124,7 +140,6 @@ def checkPendingMessage():
             break
 
 # --- Core Logic ---
-
 def Verdict(valid_number_found, sender, PushName, currData, msg_id, msg_secret, data):
     """Boolean: Checks if found numbers are valid"""
     
@@ -153,7 +168,7 @@ def Verdict(valid_number_found, sender, PushName, currData, msg_id, msg_secret, 
     set_suspended(True,False)
     return False
 
-
+# --- Main ---
 def handleNewCount(data):
     """Recieves every new message from the million group"""
     try:
@@ -171,24 +186,35 @@ def handleNewCount(data):
 
         # 1. Extract Text and find numbers in it
         EditField = str(info.get("Edit", ""))
+        msg_type = ""
+        
         match EditField:
             case "1":
-                is_edited = True
-            case "2" | "3": # message pinned | newlatter
-                return True
+                msg_type = "edit"
+            case "":
+                msg_type = "normal"
             case "7" | "8":
-                # is_deleted = False # add deleteion checks on next version!!!
-                return True 
-            case _:
-                is_edited = False    
+                msg_type = "delete"
+            case _:   # "2" | "3" message pinned | newslatter
+                return True    
 
         message_content = event.get("Message", {})
 
-        if(is_edited):
-            text, edit_target_id, message_secret = extractTextEdited(message_content, sender)
-        else:
+        if msg_type == "normal":
             text, message_secret = extractText(message_content)
-            
+        else: ## Handle deleted and edited
+            text, edit_target_id, message_secret = extractTextEdited(message_content, sender)
+            if not edit_target_id:
+                log(f" [!] Failed to extract target ID for edited/deleted message by {PushName}.")
+                return True
+
+        ## --- Handle deleted message, no need to drag it onward.
+        if msg_type == "delete":
+            if configs.IS_SUSPENDED:
+                checkDeletedPending(edit_target_id, PushName)
+            checkDeletedValidDB(edit_target_id, PushName)
+            return True
+
         if text == None: #probably reaction emoji or some shit
             return True
 
@@ -207,7 +233,7 @@ def handleNewCount(data):
 
         last_number, last_sender, _, last_msgid = currData
         if msg_id == last_msgid:
-            return True #probably an wuzapi duplicate, ignore
+            return True #probably a wuzapi duplicate, ignore
 
         valid_number_found = numberCheck(found_numbers, last_number + 1)
 
@@ -218,7 +244,7 @@ def handleNewCount(data):
                     send_alert(f"⚠️ Double Count! {PushName} tried to fix {last_number+1}, but sent 2 messages in a row.", ALERT_GROUP_JID)
                     return True   
                 send_alert(f"✅ Mistake fixed by {PushName}", ALERT_GROUP_JID)
-                if is_edited: #check all in buffer
+                if msg_type == "edit": #check all in buffer
                     # Remove the original wrong message so it doesn't re-suspend during buffer check
                     cursor.execute("DELETE FROM pending_messages WHERE msg_id = ?", (edit_target_id,))
                     conn.commit()
@@ -229,7 +255,7 @@ def handleNewCount(data):
                     save_valid_count(valid_number_found, sender, PushName, msg_id, message_secret)
                     set_suspended(False,True) #also delete buffer
             else:
-                if is_edited:
+                if msg_type == "edit":
                     checkEditedPending(edit_target_id, PushName, data)
                     checkEditedValidDB(edit_target_id, PushName, found_numbers)
 
@@ -239,12 +265,11 @@ def handleNewCount(data):
                     log(f" [*] Mistake Window. Message by {PushName} buffered.")
             return
 
-        if is_edited:
+        if msg_type == "edit":
             checkEditedValidDB(edit_target_id, PushName, found_numbers)
         else:
             Verdict(valid_number_found, sender, PushName, currData, msg_id, message_secret, data)
         return True
-    
 
 
     except Exception as e:

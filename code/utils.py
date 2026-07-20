@@ -31,17 +31,19 @@ def extractText(message_content):
 
 
 def extractTextEdited(message_content, sender):
-    """Extracts the text from edited message."""
+    """Extracts the text from edited and deleted messages."""
     from counting_check import getMessageSecret
     text = target_id = targetMsgSecret = None
-    if "protocolMessage" in message_content:  ##case not encrypted
+    if "protocolMessage" in message_content:  ##case edit not encrypted
         if "editedMessage" in message_content["protocolMessage"]:
             edited_msg = message_content["protocolMessage"]["editedMessage"]
             text, _ = extractText(edited_msg)
-            target_id = message_content["protocolMessage"]["key"].get("ID", "")
-            targetMsgSecret = getMessageSecret(target_id)
+        else:   ## case deleted message
+            text = "deleted"
+        target_id = message_content["protocolMessage"]["key"].get("ID", "")
+        targetMsgSecret = getMessageSecret(target_id)
             
-    elif "secretEncryptedMessage" in message_content: ## case encrypted
+    elif "secretEncryptedMessage" in message_content: ## case edit encrypted
         target_id = message_content["secretEncryptedMessage"]["targetMessageKey"].get("ID", "")
         targetMsgSecret = getMessageSecret(target_id)
         if not targetMsgSecret:
