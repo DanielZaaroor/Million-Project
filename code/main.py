@@ -1,3 +1,5 @@
+from multiprocessing.util import info
+
 import pika  #installed in dockerfile
 import json
 import time
@@ -27,6 +29,11 @@ def callback(ch, method, properties, body):
         event = data.get("event", {})   
         info = event.get("Info", {})
         msg_chat = info.get("Chat")
+
+        # Filter out reaction icons
+        if info.get("Type") == "reaction":
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
 
         res = True
         if msg_chat == MILLION_GROUP_JID:

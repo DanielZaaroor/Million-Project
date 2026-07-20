@@ -69,7 +69,8 @@ def numberCheck(num_list, to_find):
             return num
     return -2
 
-def checkEditedPending(target_id, PushName, data):        
+def checkEditedPending(target_id, PushName, data):
+    """If the original message was buffered, update it with the new edited content."""
     cursor.execute("SELECT id, data FROM pending_messages WHERE msg_id = ?", (target_id,))
     pending_row = cursor.fetchone()
     if pending_row:
@@ -84,13 +85,13 @@ def checkEditedPending(target_id, PushName, data):
         except Exception as e:
             log(f" [!] Failed to preserve secret in buffer: {e}")
         # ------------------------------------------------------------
-        
         cursor.execute("UPDATE pending_messages SET data = ? WHERE msg_id = ?", (json.dumps(data), target_id))
         conn.commit()
         log(f" [*] Mistake Window. Edited message by {PushName} updated in buffer.")
         return
     
 def checkEditedValidDB(target_id, PushName, found_numbers):
+    """Check if the edited message still contains the valid number."""
     cursor.execute("SELECT number FROM valid_counts WHERE msg_id = ?", (target_id,))
     valid_row = cursor.fetchone()
     if valid_row:
@@ -101,17 +102,19 @@ def checkEditedValidDB(target_id, PushName, found_numbers):
     return
 
 def checkDeletedValidDB(target_id, PushName):
-    cursor.execute("SELECT number FROM valid_counts WHERE msg_id = ?", (target_id,))
+    """Check for deletion of a valid number and alert if found."""
+    cursor.execute("SELECT number, timestamp FROM valid_counts WHERE msg_id = ?", (target_id,))
     valid_row = cursor.fetchone()
-    old_number = valid_row[0]
     if valid_row:
-        send_alert(f"*❗Sabotage - {PushName} Deleted the valid number - [{old_number}]*", ALERT_GROUP_JID)
-        cursor.execute("DELETE FROM valid_counts WHERE msg_id = ?", (target_id,))
+        old_number, deleted_timestamp = valid_row
+        send_alert(f"*❗Sabotage - {PushName} Deleted the valid number - [{old_number}]*\nCount should return to {deleted_timestamp}", ALERT_GROUP_JID)
+        cursor.execute("DELETE FROM valid_counts WHERE msg_id = ?OR timestamp > ? ", (target_id, deleted_timestamp))
         conn.commit()
-        log(f" [*] Deleted message [{old_number}] by {PushName} from the DB!.")
+        log(f" [*] Purged all records from number [{old_number}] and time [{deleted_timestamp}].")
     return
 
 def checkDeletedPending(target_id, PushName):
+    """If the original message was buffered, remove it from the buffer."""
     cursor.execute("SELECT id FROM pending_messages WHERE msg_id = ?", (target_id,))
     pending_row = cursor.fetchone()
     if pending_row:
@@ -138,6 +141,7 @@ def checkPendingMessage():
         if configs.IS_SUSPENDED:
             log(" [*] Buffered message failed validation. Re-suspending.")
             break
+    log(" [*] Finished processing. Let the count continue!")
 
 # --- Core Logic ---
 def Verdict(valid_number_found, sender, PushName, currData, msg_id, msg_secret, data):
