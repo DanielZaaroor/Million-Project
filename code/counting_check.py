@@ -105,10 +105,10 @@ def checkDeletedValidDB(target_id, PushName):
     valid_row = cursor.fetchone()
     old_number = valid_row[0]
     if valid_row:
-        send_alert(f"❗Sabotage - {PushName} Deleted the valid number - [{old_number}]", ALERT_GROUP_JID)
-        cursor.execute("DELETE FROM pending_messages WHERE msg_id = ?", (target_id,))
+        send_alert(f"*❗Sabotage - {PushName} Deleted the valid number - [{old_number}]*", ALERT_GROUP_JID)
+        cursor.execute("DELETE FROM valid_counts WHERE msg_id = ?", (target_id,))
         conn.commit()
-        log(f" [*] Deleted message [{old_number}] by {PushName} from buffer.")
+        log(f" [*] Deleted message [{old_number}] by {PushName} from the DB!.")
     return
 
 def checkDeletedPending(target_id, PushName):
