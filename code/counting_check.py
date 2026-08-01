@@ -108,10 +108,13 @@ def checkDeletedValidDB(target_id, PushName):
     valid_row = cursor.fetchone()
     if valid_row:
         if configs.IS_SUSPENDED:
+            cursor.execute("DELETE FROM valid_counts WHERE msg_id = ?", (target_id))
+            conn.commit()
             is_fixed = checkPendingMessage()
             if is_fixed:
-                return #dont panic fix was in buffer
-        else:
+                log(f" [*] Number deleted by {PushName}, but the found the same number in buffer.")
+                return 
+        else: #true sabotage, or mistake and next message will fix and stop the alert.
             set_suspended(True,False)
         old_number, deleted_timestamp = valid_row
         readable_time = time.strftime('%d/%m/%Y %H:%M:%S', time.localtime(deleted_timestamp))
