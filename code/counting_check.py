@@ -1,7 +1,7 @@
 from wuzapi_client import send_alert
 from configs import cursor, conn, ALERT_GROUP_JID
 import configs
-from utils import log, extractText, extractTextEdited
+from utils import log, extractText, extractTextEdited, sanitize_text
 import json
 import time
 import re
@@ -106,22 +106,21 @@ def checkDeletedValidDB(target_id, PushName):
     """Check for deletion of a valid number and alert if found."""
     cursor.execute("SELECT number, timestamp FROM valid_counts WHERE msg_id = ?", (target_id,))
     valid_row = cursor.fetchone()
-    if valid_row:
-        if configs.IS_SUSPENDED:
-            cursor.execute("DELETE FROM valid_counts WHERE msg_id = ?", (target_id))
-            conn.commit()
-            is_fixed = checkPendingMessage()
-            if is_fixed:
-                log(f" [*] Number deleted by {PushName}, but the found the same number in buffer.")
-                return 
-        else: #true sabotage, or mistake and next message will fix and stop the alert.
-            set_suspended(True,False)
-        old_number, deleted_timestamp = valid_row
-        readable_time = time.strftime('%d/%m/%Y %H:%M:%S', time.localtime(deleted_timestamp))
-        send_alert(f"*❗Sabotage - {PushName} Deleted the valid number - [{old_number}]*\n- Continue from {readable_time}", ALERT_GROUP_JID, ALERT_DELAY)
-        cursor.execute("DELETE FROM valid_counts WHERE msg_id = ?OR timestamp > ? ", (target_id, deleted_timestamp))
+    if configs.IS_SUSPENDED:
+        cursor.execute("DELETE FROM valid_counts WHERE msg_id = ?", (target_id,))
         conn.commit()
-        log(f" [!!] Purged all records from number [{old_number}] and time [{readable_time}].")
+        is_fixed = checkPendingMessage()
+        if is_fixed:
+            log(f" [*] Number deleted by {PushName}, but the found the same number in buffer.")
+            return 
+    else: #true sabotage, or mistake and next message will fix and stop the alert.1
+        set_suspended(True,False)
+    old_number, deleted_timestamp = valid_row
+    readable_time = time.strftime('%d/%m/%Y %H:%M:%S', time.localtime(deleted_timestamp))
+    send_alert(f"*❗Sabotage - {PushName} Deleted the valid number - [{old_number}]*\n- Continue from {readable_time}", ALERT_GROUP_JID, ALERT_DELAY)
+    cursor.execute("DELETE FROM valid_counts WHERE msg_id = ? OR timestamp > ?", (target_id, deleted_timestamp))
+    conn.commit()
+    log(f" [!!] Purged all records from number [{old_number}] and time [{readable_time}].")
 
 def checkDeletedPending(target_id, PushName):
     """If the original message was buffered, remove it from the buffer."""
@@ -162,7 +161,8 @@ def Verdict(valid_number_found, sender, PushName, currData, msg_id, msg_secret, 
     last_number, last_sender, _, _ = currData
     if sender == last_sender:
         send_alert(f"⚠️ Double Count! {PushName} sent 2 messages in a row.", ALERT_GROUP_JID)
-        return False #don't suspend, next number will be correct, admin will delete this one.
+        set_suspended(True,False)
+        return False #suspend, next number will be correct, admin will delete this one.
     
     if(valid_number_found > 0):
         # SUCCESS
@@ -230,10 +230,16 @@ def handleNewCount(data):
             checkDeletedValidDB(edit_target_id, PushName)
             return True
 
-        if text == None: #probably reaction emoji or some shit
+        sanitized_text, sus= sanitize_text(text)
+
+        if sanitized_text == None: 
+            if sus:
+                send_alert(f"⚠️ Suspicious Unicode in message by {PushName}. Didn't process.", ALERT_GROUP_JID)
+            else:
+                send_alert(f"⚠️ Something weird with message by {PushName}. Didn't process.", ALERT_GROUP_JID)
             return True
 
-        found_numbers = re.findall(r'\d+', text)
+        found_numbers = re.findall(r'\d+', sanitized_text)
 
         # 2. Get Curr Data and check for suspended
         currData = get_CurrData()

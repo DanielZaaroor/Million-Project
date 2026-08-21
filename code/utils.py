@@ -9,6 +9,23 @@ def log(msg):
     timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
     print(f"{timestamp} {msg}")
 
+# Unicode chars that reverse or alter visual display of numbers
+BIDI_OVERRIDE_CHARS = {'\u202E', '\u202D', '\u202B', '\u202A', '\u2066', '\u2067', '\u2068', '\u2069'}
+# Unicode chars that are invisible but can split numbers
+INVISIBLE_CHARS = {'\u200B', '\u200C', '\u200D', '\u200E', '\u200F', '\u202C', '\u2060', '\uFEFF'}
+
+def sanitize_text(text):
+    """Search and alert for suspicious characters."""
+    for char in INVISIBLE_CHARS:
+        if char in text:
+            return None, True
+
+    for char in BIDI_OVERRIDE_CHARS:
+        if char in text:
+            return None, True
+
+    return text, False
+
 def extractText(message_content):
     """Extracts the text from any type of message."""
     text = message_secret = None
@@ -26,6 +43,8 @@ def extractText(message_content):
         text = message_content["videoMessage"].get("caption", "")
     elif "pollCreationMessageV3" in message_content:
         text = message_content["pollCreationMessageV3"].get("name", "")
+    elif "documentMessage" in message_content:
+        text = message_content["documentMessage"].get("caption", "")
 
     return text, message_secret
 
