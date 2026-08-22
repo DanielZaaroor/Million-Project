@@ -1,10 +1,9 @@
 from wuzapi_client import send_alert
 from configs import cursor, conn, ALERT_GROUP_JID
 import configs
-from utils import log, extractText, extractTextEdited, sanitize_text
+from utils import extract_and_sanitize_numbers, log, extractText, extractTextEdited
 import json
 import time
-import re
 
 ALERT_DELAY = 60
 
@@ -43,6 +42,12 @@ def save_valid_count(number, sender, push_name, msg_id, msg_secret=None):
         VALUES (?, ?, ?, ?, ?, ?)
     """, (number, sender, push_name, time.time(), msg_id, msg_secret))
     conn.commit()
+
+def buffer_message(msg_id, data, push_name):
+    """Buffers a message in the pending_messages table."""
+    cursor.execute("INSERT INTO pending_messages (msg_id, data) VALUES (?, ?)", (msg_id, json.dumps(data)))
+    conn.commit()
+    log(f" [*] Mistake Window. Message by {push_name} buffered.")
 
 def set_suspended(is_suspended: bool, delete: bool):
     """Updates the single row in the state table."""
@@ -178,7 +183,7 @@ def Verdict(valid_number_found, sender, PushName, currData, msg_id, msg_secret, 
         send_alert(f"⚠️ Wrong Number by {PushName}! Expected {last_number+1}.", ALERT_GROUP_JID, ALERT_DELAY)           
 
     # Buffer the wrong message. If the user edits it, we will need its msg_secret to decrypt the edit.
-    cursor.execute("INSERT INTO pending_messages (msg_id, data) VALUES (?, ?)", (msg_id, json.dumps(data)))
+    buffer_message(msg_id, data, PushName)
 
     set_suspended(True,False)
     return False
@@ -215,6 +220,9 @@ def handleNewCount(data):
 
         message_content = event.get("Message", {})
 
+        if "senderKeyDistributionMessage" in message_content:
+            return True # Ignore encryption key exchange messages
+
         if msg_type == "normal":
             text, message_secret = extractText(message_content)
         else: ## Handle deleted and edited
@@ -230,16 +238,17 @@ def handleNewCount(data):
             checkDeletedValidDB(edit_target_id, PushName)
             return True
 
-        sanitized_text, sus= sanitize_text(text)
-
-        if sanitized_text == None: 
-            if sus:
-                send_alert(f"⚠️ Suspicious Unicode in message by {PushName}. Didn't process.", ALERT_GROUP_JID)
-            else:
-                send_alert(f"⚠️ Something weird with message by {PushName}. Didn't process.", ALERT_GROUP_JID)
+        
+        if text == None:  
+            send_alert(f"⚠️ Something weird with message by {PushName}. couldn't process.", ALERT_GROUP_JID)
+            log(f" [!] Something weird with the message: {text}.")
             return True
 
-        found_numbers = re.findall(r'\d+', sanitized_text)
+        found_numbers, sus = extract_and_sanitize_numbers(text)
+        if sus:
+            send_alert(f"⚠️ Suspicious Unicode in message by {PushName}. Didn't process.", ALERT_GROUP_JID)
+            log(f" [!] Suspicious Unicode in the message: {text}.")
+            return True
 
         # 2. Get Curr Data and check for suspended
         currData = get_CurrData()
@@ -263,7 +272,8 @@ def handleNewCount(data):
             if valid_number_found > 0:
                 if sender == last_sender:
                     send_alert(f"⚠️ Double Count! {PushName} tried to fix {last_number+1}, but sent 2 messages in a row.", ALERT_GROUP_JID)
-                    return True   
+                    buffer_message(msg_id, data, PushName)
+                    return True
                 send_alert(f"✅ Mistake fixed by {PushName}", ALERT_GROUP_JID)
                 if msg_type == "edit": #check all in buffer
                     # Remove the original wrong message so it doesn't re-suspend during buffer check
@@ -281,9 +291,7 @@ def handleNewCount(data):
                     checkEditedValidDB(edit_target_id, PushName, found_numbers)
 
                 else:
-                    cursor.execute("INSERT INTO pending_messages (msg_id, data) VALUES (?, ?)", (msg_id, json.dumps(data)))
-                    conn.commit()
-                    log(f" [*] Mistake Window. Message by {PushName} buffered.")
+                    buffer_message(msg_id, data, PushName)
             return
 
         if msg_type == "edit":

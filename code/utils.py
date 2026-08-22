@@ -1,4 +1,6 @@
 from datetime import datetime
+import unicodedata
+import re
 import base64
 import hmac
 import hashlib
@@ -9,22 +11,30 @@ def log(msg):
     timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
     print(f"{timestamp} {msg}")
 
-# Unicode chars that reverse or alter visual display of numbers
-BIDI_OVERRIDE_CHARS = {'\u202E', '\u202D', '\u202B', '\u202A', '\u2066', '\u2067', '\u2068', '\u2069'}
-# Unicode chars that are invisible but can split numbers
-INVISIBLE_CHARS = {'\u200B', '\u200C', '\u200D', '\u200E', '\u200F', '\u202C', '\u2060', '\uFEFF'}
+BIDI_NAMES = {'RIGHT-TO-LEFT', 'OVERRIDE', 'EMBEDDING', 'ISOLATE'}
 
-def sanitize_text(text):
-    """Search and alert for suspicious characters."""
-    for char in INVISIBLE_CHARS:
-        if char in text:
-            return None, True
+def is_suspicious_char(char):
+    name = unicodedata.name(char, '')
+    return any(b in name for b in BIDI_NAMES)
 
-    for char in BIDI_OVERRIDE_CHARS:
-        if char in text:
-            return None, True
-
-    return text, False
+def extract_and_sanitize_numbers(text):
+    """Find all numbers in text, check only the chars surrounding them."""
+    # Find all number matches with their positions
+    matches = list(re.finditer(r'\d+', text))
+    if not matches:
+        return [], False
+    
+    for match in matches:
+        # Check a small window around the number (5 chars each side)
+        start = max(0, match.start() - 5)
+        end = min(len(text), match.end() + 5)
+        window = text[start:end]
+        
+        for char in window:
+            if is_suspicious_char(char):
+                return [], True
+    
+    return [m.group() for m in matches], False
 
 def extractText(message_content):
     """Extracts the text from any type of message."""
