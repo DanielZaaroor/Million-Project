@@ -3,7 +3,7 @@ services:
     image: asternic/wuzapi:latest
     restart: always
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     entrypoint: /bin/sh -c "./wuzapi | tee -a /app/logs/wuzapi.log"
     volumes:
       - ./wuzapi_data:/app/dbdata
@@ -20,8 +20,8 @@ services:
     image: rabbitmq:3-management
     restart: always
     ports:
-      - "5672:5672"   # Messaging port
-      - "15672:15672" # Dashboard (optional)
+      - "127.0.0.1:5672:5672"   # Messaging port
+      - "127.0.0.1:15672:15672" # Dashboard (optional)
     volumes:
       - ./rabbitmq_data:/var/lib/rabbitmq #save queue in case of container dies
     environment:
