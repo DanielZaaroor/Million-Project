@@ -220,8 +220,8 @@ def handleNewCount(data):
 
         message_content = event.get("Message", {})
 
-        if "senderKeyDistributionMessage" in message_content:
-            return True # Ignore encryption key exchange messages
+        if "senderKeyDistributionMessage" in message_content or "pollUpdateMessage" in message_content:
+            return True # Ignore encryption key exchange messages, poll updates.
 
         if msg_type == "normal":
             text, message_secret = extractText(message_content)
