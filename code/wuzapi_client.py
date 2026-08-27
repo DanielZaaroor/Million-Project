@@ -12,11 +12,14 @@ def send_alert(message, dest, delay=0):
     if (delay == -1 and configs.IS_SUSPENDED == False): 
         return #if called back after delay and group is not suspended anymore
 
-    log(f" [!] SENDING ALERT: {message}")
-    url = f"{configs.WUZAPI_HOST}/chat/send/text"
-    headers = { "Token": configs.ADMIN_TOKEN, "Content-Type": "application/json",}
-    payload = { "Phone": dest, "Body": f"{message}" }
-    try:
-        requests.post(url, json=payload, headers=headers)
-    except Exception as e:
-        log(f" [!!] Failed to send alert: {e}")  
+    # If more than one destination (alert groups)
+    groups = dest.split(",")
+    for group in groups:
+        log(f" [!] SENDING ALERT: {message}")
+        url = f"{configs.WUZAPI_HOST}/chat/send/text"
+        headers = { "Token": configs.ADMIN_TOKEN, "Content-Type": "application/json",}
+        payload = { "Phone": group, "Body": f"{message}" }
+        try:
+            requests.post(url, json=payload, headers=headers)
+        except Exception as e:
+            log(f" [!!] Failed to send alert: {e}")  
