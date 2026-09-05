@@ -223,7 +223,7 @@ def handleNewCount(data):
         if msg_type == "normal":
             ignore, text, message_secret = extractText(message_content)
         else: ## Handle deleted and edited
-            text, edit_target_id, message_secret = extractTextEdited(message_content, sender)
+            ignore, text, edit_target_id, message_secret = extractTextEdited(message_content, sender)
             if not edit_target_id:
                 log(f" [!] Failed to extract target ID for edited/deleted message by {PushName}.")
                 return True

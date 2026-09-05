@@ -40,7 +40,6 @@ def extractText(message_content):
     """Extracts the text from any type of message.
     Returns a tuple of (ignore_flag, text, message_secret)."""
     text = message_secret = None
-    ignore = False
 
     if "senderKeyDistributionMessage" in message_content or "pollUpdateMessage" in message_content:
         return True, text, message_secret  # Ignore encryption key exchange messages, poll updates.
@@ -62,7 +61,7 @@ def extractText(message_content):
     elif "documentMessage" in message_content:
         text = message_content["documentMessage"].get("caption", "")
 
-    return ignore, text, message_secret
+    return False, text, message_secret
 
 
 def extractTextEdited(message_content, sender):
@@ -89,7 +88,7 @@ def extractTextEdited(message_content, sender):
         encIV = message_content["secretEncryptedMessage"].get("encIV","")
         text = decryptEditedMessage(targetMsgSecret, encPayload, encIV, target_id, sender)
         
-    return text, target_id, targetMsgSecret
+    return False, text, target_id, targetMsgSecret
 
 
 
