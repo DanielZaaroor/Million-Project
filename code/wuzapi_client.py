@@ -14,8 +14,8 @@ def send_alert(message, dest, delay=0):
 
     # If more than one destination (alert groups)
     groups = dest.split(",")
+    log(f" [!] SENDING ALERT: {message}")
     for group in groups:
-        log(f" [!] SENDING ALERT: {message}")
         url = f"{configs.WUZAPI_HOST}/chat/send/text"
         headers = { "Token": configs.ADMIN_TOKEN, "Content-Type": "application/json",}
         payload = { "Phone": group, "Body": f"{message}" }
