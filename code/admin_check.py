@@ -10,11 +10,10 @@ def adminActions(data):
   # info = event.get("Info", {})
   message_content = event.get("Message", {})
 
-  extracted = extractText(message_content)
-  if len(extracted) == 3:
-      text, _, _ = extracted
-  else:
-      text, _ = extracted
+  ignore, text, _ = extractText(message_content)
+
+  if ignore:
+      return True
   if text == None:
       return False
   

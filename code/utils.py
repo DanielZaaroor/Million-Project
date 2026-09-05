@@ -37,12 +37,18 @@ def extract_and_sanitize_numbers(text):
     return [m.group() for m in matches], False
 
 def extractText(message_content):
-    """Extracts the text from any type of message."""
+    """Extracts the text from any type of message.
+    Returns a tuple of (ignore_flag, text, message_secret)."""
     text = message_secret = None
+    ignore = False
 
+    if "senderKeyDistributionMessage" in message_content or "pollUpdateMessage" in message_content:
+        return True, text, message_secret  # Ignore encryption key exchange messages, poll updates.
+    elif "protocolMessage" in message_content and "editedMessage" not in message_content["protocolMessage"]:
+        return True, text, message_secret  # Ignore
+        
     if "messageContextInfo" in message_content:
        message_secret = message_content["messageContextInfo"].get("messageSecret", "")
-
     if "conversation" in message_content:
         text = message_content["conversation"]
     elif "extendedTextMessage" in message_content:
@@ -56,7 +62,7 @@ def extractText(message_content):
     elif "documentMessage" in message_content:
         text = message_content["documentMessage"].get("caption", "")
 
-    return text, message_secret
+    return ignore, text, message_secret
 
 
 def extractTextEdited(message_content, sender):
@@ -66,7 +72,7 @@ def extractTextEdited(message_content, sender):
     if "protocolMessage" in message_content:  ##case edit not encrypted
         if "editedMessage" in message_content["protocolMessage"]:
             edited_msg = message_content["protocolMessage"]["editedMessage"]
-            text, _ = extractText(edited_msg)
+            _ , text, _ = extractText(edited_msg)
         else:   ## case deleted message
             text = "deleted"
         target_id = message_content["protocolMessage"]["key"].get("ID", "")

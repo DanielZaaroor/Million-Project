@@ -28,7 +28,7 @@ def getMessageSecret(msg_id):
         try:
             p_data = json.loads(p_row[0])
             message_content = p_data.get("event", {}).get("Message", {})
-            _, secret = extractText(message_content)
+            _, _, secret = extractText(message_content)
             return secret
         except Exception as e:
             log(f" [!] Error parsing buffer for secret: {e}")
@@ -220,17 +220,17 @@ def handleNewCount(data):
 
         message_content = event.get("Message", {})
 
-        if "senderKeyDistributionMessage" in message_content or "pollUpdateMessage" in message_content:
-            return True # Ignore encryption key exchange messages, poll updates.
-
         if msg_type == "normal":
-            text, message_secret = extractText(message_content)
+            ignore, text, message_secret = extractText(message_content)
         else: ## Handle deleted and edited
             text, edit_target_id, message_secret = extractTextEdited(message_content, sender)
             if not edit_target_id:
                 log(f" [!] Failed to extract target ID for edited/deleted message by {PushName}.")
                 return True
 
+        if ignore:
+            return True
+        
         ## --- Handle deleted message, no need to drag it onward.
         if msg_type == "delete":
             if configs.IS_SUSPENDED:
