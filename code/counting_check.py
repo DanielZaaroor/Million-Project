@@ -111,6 +111,9 @@ def checkDeletedValidDB(target_id, PushName):
     """Check for deletion of a valid number and alert if found."""
     cursor.execute("SELECT number, timestamp FROM valid_counts WHERE msg_id = ?", (target_id,))
     valid_row = cursor.fetchone()
+    if not valid_row:
+        return
+
     if configs.IS_SUSPENDED:
         cursor.execute("DELETE FROM valid_counts WHERE msg_id = ?", (target_id,))
         conn.commit()
@@ -239,7 +242,7 @@ def handleNewCount(data):
             return True
 
         
-        if text == None:  
+        if text == None:
             send_alert(f"⚠️ Something weird with message by {PushName}. couldn't process.", ALERT_GROUP_JID)
             log(f" [!] Something weird with the message: {text}.")
             return True

@@ -17,7 +17,7 @@ IS_SUSPENDED = False
 # --- Database Setup ---
 DB_PATH = "/app/data/million_data.db"
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
     
 
